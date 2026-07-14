@@ -1,0 +1,10 @@
+{
+	"name": "SpeedRun",
+	"version": "0.0.1",
+	"required": "4.1.0",
+	"author": "ebe1.kenobi",
+	"description": "Poto",
+	"dll": "TFModFortRiseSpeedRun.dll",
+	"dependencies": [
+	]
+}
