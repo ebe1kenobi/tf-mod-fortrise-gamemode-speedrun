@@ -70,7 +70,28 @@ namespace TFModFortRiseSpeedRun
       speed.Visible = scrollMode;
       fields.Add(speed);
 
+      // Acceleration progressive du scroll (0 = OFF) ; l'intervalle n'apparait
+      // que si l'acceleration est active.
+      Field accelAmount = IntField("ACCEL (+SPEED)", () => s.SpeedRunAccelAmount, v => s.SpeedRunAccelAmount = v, 0, 20);
+      accelAmount.Value = () => s.SpeedRunAccelAmount == 0 ? "OFF" : "+" + s.SpeedRunAccelAmount;
+      accelAmount.Visible = scrollMode;
+      fields.Add(accelAmount);
+
+      Field accelEvery = IntField("ACCEL EVERY (s)", () => s.SpeedRunAccelEvery, v => s.SpeedRunAccelEvery = v, 1, 60);
+      accelEvery.Visible = () => scrollMode() && s.SpeedRunAccelAmount > 0;
+      fields.Add(accelEvery);
+
       fields.Add(IntField("LEVELS", () => s.SpeedRunMaxLevels, v => s.SpeedRunMaxLevels = v, 2, 30));
+
+      // Portail d'arrivee. Pas de notion de tour en follow players + square ->
+      // le portail n'y existe pas, on cache l'option dans ce cas.
+      Field goal = BoolField("GOAL PORTAL", () => s.SpeedRunGoalPortal, v => s.SpeedRunGoalPortal = v);
+      goal.Visible = () => scrollMode() || s.SpeedRunShape == TFModFortRiseSpeedRunSettings.ShapeHorizontal;
+      fields.Add(goal);
+
+      Field laps = IntField("LAPS (SQUARE)", () => s.SpeedRunLaps, v => s.SpeedRunLaps = v, 1, 10);
+      laps.Visible = () => s.SpeedRunGoalPortal && s.SpeedRunShape == TFModFortRiseSpeedRunSettings.ShapeSquare && scrollMode();
+      fields.Add(laps);
 
       Field leaveBehind = BoolField("LEAVE BEHIND", () => s.SpeedRunLeaveBehind, v => s.SpeedRunLeaveBehind = v);
       leaveBehind.Visible = scrollMode;
@@ -192,10 +213,12 @@ namespace TFModFortRiseSpeedRun
     {
       Draw.Rect(0f, 0f, 320f, 240f, Color.Black * 0.8f);
       Draw.OutlineTextCentered(TFGame.Font, "SPEED RUN", Position + new Vector2(0f, -86f), Color.White, 2f);
-      Draw.TextCentered(TFGame.Font, "UP/DOWN: CHAMP   LEFT/RIGHT: AJUSTER", Position + new Vector2(0f, -72f), Color.Gray);
+      Draw.TextCentered(TFGame.Font, "UP/DOWN: CHAMP  LEFT/RIGHT: AJUSTER  CONFIRM: FERMER", Position + new Vector2(0f, -72f), Color.Gray);
 
+      // Espacement 12px et depart un peu plus haut : jusqu'a 13 lignes visibles
+      // sans deborder sur le pied de page.
       List<Field> vis = VisibleFields();
-      float rowY = Position.Y - 56f;
+      float rowY = Position.Y - 62f;
       for (int i = 0; i < vis.Count; i++)
       {
         bool sel = i == selected;
@@ -204,10 +227,8 @@ namespace TFModFortRiseSpeedRun
         string prefix = sel ? "> " : "  ";
         Draw.Text(TFGame.Font, prefix + vis[i].Label, new Vector2(Position.X - 100f, rowY), labelColor);
         Draw.Text(TFGame.Font, vis[i].Value(), new Vector2(Position.X + 50f, rowY), valueColor);
-        rowY += 13f;
+        rowY += 12f;
       }
-
-      Draw.TextCentered(TFGame.Font, "CONFIRMER / RETOUR: FERMER", Position + new Vector2(0f, 92f), Color.Gray);
     }
   }
 }

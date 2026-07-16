@@ -64,7 +64,9 @@ namespace TFModFortRiseSpeedRun
           return;
         }
         this.done = true;
-        if (base.Session.CurrentLevel.Players.Count == 1)
+        // Round gagne au portail : le score du gagnant est deja compte par
+        // OnGoalEntered (le gagnant a ete retire du niveau en sautant dedans).
+        if (!this.goalReached && base.Session.CurrentLevel.Players.Count == 1)
         {
           base.AddScore(base.Session.CurrentLevel.Player.PlayerIndex, 1);
         }
@@ -93,18 +95,43 @@ namespace TFModFortRiseSpeedRun
     private const float LEADER_TARGET = 0.667f;
     private const float LEADER_GAIN = 0.08f;
     private const float LEADER_MAX_SPEED = 6f;
+    // Plafond de la vitesse de scroll avec acceleration progressive, en
+    // dixiemes de px/frame (60 = 6 px/frame, meme plafond que le suivi leader).
+    private const float MAX_SPEED_TENTHS = 60f;
     // Mode "follow players" (pas de scroll auto) : gain de recentrage sur la
     // boite englobante des joueurs, vitesse max de la camera, et marge aux bords
     // au-dela de laquelle le groupe est considere trop ecarte (camera figee).
     private const float FOLLOW_GAIN = 0.08f;
     private const float FOLLOW_MAX_SPEED = 6f;
     private const float FOLLOW_EDGE_MARGIN = WINDOW_MARGIN;
+    // Murs invisibles aux bords (follow players) : epaisseur, et prolongement
+    // des murs lateraux au-dessus du haut de l'ecran (le haut est ouvert, mais
+    // un joueur qui saute au-dessus doit rester contenu sur les cotes).
+    private const int EDGE_WALL_THICK = 16;
+    private const int EDGE_WALL_EXTEND_UP = 80;
+    // Demi-hitbox joueur (8x14, offset -4/-6) : bords du clamp de securite
+    // alignes sur les surfaces des murs pour ne pas eloigner le joueur du mur
+    // (le wall-jump teste la collision a 2px du bord de la hitbox).
+    private const float PLAYER_HALF_W = 4f;
+    private const float PLAYER_FEET = 8f;
 
     private static bool FollowPlayersMode =>
       TFModFortRiseSpeedRunModule.Settings.SpeedRunCamera == TFModFortRiseSpeedRunSettings.CameraFollowPlayers;
 
     private bool scrollInit;
     private bool loopMode;
+    // Frames ecoulees depuis que le scroll est actif (round demarre, zoom
+    // d'intro termine), pour l'acceleration progressive.
+    private float scrollTime;
+    // Murs invisibles du mode follow players (gauche, droite, bas) et le Level
+    // dans lequel ils ont ete crees (recrees a chaque nouveau round/scene).
+    private SpeedRunEdgeWall wallLeft, wallRight, wallBottom;
+    private Level wallsLevel;
+    // Portail d'arrivee : instance courante, tours boucles (square), et round
+    // gagne via le portail (fige le scroll, la fin de round est geree a part).
+    private SpeedRunGoalPortal goalPortal;
+    private int lapsDone;
+    private bool goalReached;
     private float camX, camY;
     private float bandMaxCamX;
     private float[] offscreenTimer; // par PlayerIndex, en frames accumulees
@@ -122,6 +149,10 @@ namespace TFModFortRiseSpeedRun
       camX = 0f;
       camY = 0f;
       pathS = 0f;
+      scrollTime = 0f;
+      goalPortal = null;
+      lapsDone = 0;
+      goalReached = false;
       loopMode = SpeedRunLevelSystem.IsLoop;
       bandMaxCamX = Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW);
       if (loopMode)
@@ -332,6 +363,11 @@ namespace TFModFortRiseSpeedRun
 
       level.Camera.Zoom = 1f;
 
+      // Round gagne via le portail : on fige tout (camera, murs, clamp) le
+      // temps que la fin de round se joue.
+      if (goalReached)
+        return;
+
       // Mode "follow players" : plus AUCUN scroll automatique, la camera suit
       // les mouvements du groupe de joueurs.
       if (FollowPlayersMode)
@@ -340,7 +376,19 @@ namespace TFModFortRiseSpeedRun
         return;
       }
 
-      float baseSpeed = TFModFortRiseSpeedRunModule.Settings.SpeedRunSpeed / 10f * Engine.TimeMult;
+      // Acceleration progressive : toutes les N secondes, +amount dixiemes de
+      // px/frame sur la vitesse de base (plafonnee a MAX_SPEED_TENTHS).
+      scrollTime += Engine.TimeMult;
+      float speedTenths = TFModFortRiseSpeedRunModule.Settings.SpeedRunSpeed;
+      int accelAmount = TFModFortRiseSpeedRunModule.Settings.SpeedRunAccelAmount;
+      if (accelAmount > 0)
+      {
+        int accelEvery = Math.Max(1, TFModFortRiseSpeedRunModule.Settings.SpeedRunAccelEvery);
+        speedTenths += accelAmount * (float)Math.Floor(scrollTime / (accelEvery * 60f));
+        if (speedTenths > MAX_SPEED_TENTHS)
+          speedTenths = MAX_SPEED_TENTHS;
+      }
+      float baseSpeed = speedTenths / 10f * Engine.TimeMult;
       bool followLeader = TFModFortRiseSpeedRunModule.Settings.SpeedRunCamera == TFModFortRiseSpeedRunSettings.CameraFollowLeader;
       bool leaveBehind = TFModFortRiseSpeedRunModule.Settings.SpeedRunLeaveBehind;
 
@@ -358,7 +406,10 @@ namespace TFModFortRiseSpeedRun
         float speed = followLeader ? LeaderControlledSpeed(level, baseSpeed, dirX, dirY) : baseSpeed;
         pathS += speed;
         if (pathS >= pathLen)
+        {
           pathS -= pathLen;
+          lapsDone++; // un tour complet du parcours (pour le portail d'arrivee)
+        }
         Vector2 pos = PathPos(pathS);
         camX = pos.X;
         camY = pos.Y;
@@ -381,6 +432,7 @@ namespace TFModFortRiseSpeedRun
       level.Camera.Y = camY;
       KillVanillaBorder(level);
 
+      UpdateGoalPortal(level);
       ClampPlayersToWindow(level, dirX, dirY, leaveBehind);
       if (leaveBehind)
         OffscreenDeathCheck(level);
@@ -460,7 +512,115 @@ namespace TFModFortRiseSpeedRun
       level.Camera.Y = camY;
       KillVanillaBorder(level);
 
+      UpdateEdgeWalls(level);
       ClampPlayersFollow(level);
+      UpdateGoalPortal(level);
+    }
+
+    // ------------------------------------------------------------------
+    // Portail d'arrivee ("trou noir" facon coop). Le premier joueur qui saute
+    // dedans gagne le round, les autres meurent.
+    //   - HORIZONTAL : au centre du dernier ecran de la bande ; spawn quand le
+    //     bout du parcours entre dans la fenetre visible (tous modes camera).
+    //   - SQUARE : apres SpeedRunLaps tours complets, au point de depart du
+    //     parcours (la ou la camera se trouve au moment du bouclage). Pas de
+    //     notion de tour en follow players -> pas de portail dans ce cas.
+    // ------------------------------------------------------------------
+    private void UpdateGoalPortal(Level level)
+    {
+      if (!TFModFortRiseSpeedRunModule.Settings.SpeedRunGoalPortal || goalReached || goalPortal != null)
+        return;
+
+      Vector2? pos = null;
+      if (!loopMode)
+      {
+        // Bande horizontale : centre du dernier ecran, des qu'il devient visible.
+        float portalX = SpeedRunLevelSystem.TotalWidthPixels - WinW / 2f;
+        if (camX + WinW >= portalX + 8f)
+          pos = FindFreeSpot(level, portalX, camY + 120f);
+      }
+      else if (lapsDone >= Math.Max(1, TFModFortRiseSpeedRunModule.Settings.SpeedRunLaps))
+      {
+        // Anneau : point de depart du parcours (fenetre (0,0)).
+        pos = FindFreeSpot(level, WinW / 2f, 120f);
+      }
+
+      if (pos == null)
+        return;
+      goalPortal = new SpeedRunGoalPortal(pos.Value);
+      goalPortal.OnEnter = OnGoalEntered;
+      level.Add<SpeedRunGoalPortal>(goalPortal);
+    }
+
+    // Cherche une case libre (24x24) autour de (x, y) en balayant verticalement
+    // (0, -16, +16, -32, ...) pour ne pas faire apparaitre le portail dans un mur.
+    private static Vector2 FindFreeSpot(Level level, float x, float y)
+    {
+      for (int k = 0; k < 13; k++)
+      {
+        float dy = ((k + 1) / 2) * 16f * ((k % 2 == 1) ? -1f : 1f);
+        Rectangle rect = new Rectangle((int)(x - 12f), (int)(y + dy - 12f), 24, 24);
+        if (!level.CollideCheck(rect, GameTags.Solid))
+          return new Vector2(x, y + dy);
+      }
+      return new Vector2(x, y);
+    }
+
+    // Premier joueur entre dans le portail : il gagne le round, les autres
+    // meurent. La fin de round passe ensuite par le flux normal (Ending +
+    // RoundEndCounter dans OnUpdate) ; OnPlayerDeath est court-circuite par
+    // goalReached pour ne pas declencher un "final kill" sur un perdant.
+    private void OnGoalEntered(Player winner)
+    {
+      if (goalReached)
+        return;
+      goalReached = true;
+
+      if (goalPortal != null)
+        goalPortal.Close();
+
+      int winnerIndex = winner.PlayerIndex;
+      winner.RemoveSelf(); // le gagnant a saute dans le trou
+
+      Level level = base.Session.CurrentLevel;
+      List<Player> losers = new List<Player>();
+      foreach (Entity e in level.Players)
+      {
+        Player p = e as Player;
+        if (p != null && p != winner && !p.Dead)
+          losers.Add(p);
+      }
+      foreach (Player p in losers)
+        p.Die(DeathCause.Miasma, winnerIndex);
+
+      base.AddScore(winnerIndex, 1);
+      level.Ending = true;
+    }
+
+    // Murs solides invisibles suivant la fenetre camera : gauche, droite et bas
+    // (le haut reste ouvert). De vraies collisions Solid -> le joueur peut
+    // wall-jumper sur le bord de l'ecran et se tenir debout (et sauter) sur le
+    // bord bas quand la camera ne peut plus le suivre au-dessus d'un trou.
+    // En temps normal la camera recentre le groupe avant que quiconque ne les
+    // touche ; ils n'entrent en jeu que quand la camera est figee (groupe trop
+    // ecarte) ou en retard (dodge plus rapide que la camera).
+    private void UpdateEdgeWalls(Level level)
+    {
+      int winW = (int)WinW;
+      if (wallsLevel != level)
+      {
+        wallLeft = new SpeedRunEdgeWall(EDGE_WALL_THICK, 240 + EDGE_WALL_EXTEND_UP);
+        wallRight = new SpeedRunEdgeWall(EDGE_WALL_THICK, 240 + EDGE_WALL_EXTEND_UP);
+        wallBottom = new SpeedRunEdgeWall(winW + 2 * EDGE_WALL_THICK, EDGE_WALL_THICK);
+        level.Add<SpeedRunEdgeWall>(wallLeft);
+        level.Add<SpeedRunEdgeWall>(wallRight);
+        level.Add<SpeedRunEdgeWall>(wallBottom);
+        wallsLevel = level;
+      }
+      // Surfaces exactement aux bords de la fenetre visible.
+      wallLeft.Position = new Vector2(camX - EDGE_WALL_THICK, camY - EDGE_WALL_EXTEND_UP);
+      wallRight.Position = new Vector2(camX + winW, camY - EDGE_WALL_EXTEND_UP);
+      wallBottom.Position = new Vector2(camX - EDGE_WALL_THICK, camY + 240f);
     }
 
     // Boite englobante des joueurs vivants. Retourne false si aucun.
@@ -505,18 +665,19 @@ namespace TFModFortRiseSpeedRun
       return cam + step;
     }
 
-    // Murs invisibles aux 4 bords de la fenetre (marge comprise). N'agit que si
-    // la camera n'a pas pu suivre (groupe trop ecarte ou bord du niveau) : dans
-    // le cas normal, le recentrage garde tout le monde loin des bords. Le haut
-    // reste libre (un saut au-dessus de l'ecran retombe tout seul). Si le clamp
-    // pousserait le joueur dans un solide, il est ecrase (meme regle que le
-    // mur arriere du scroll classique).
+    // Filet de securite derriere les murs invisibles (UpdateEdgeWalls) : si un
+    // joueur s'est retrouve au-dela d'un bord malgre les collisions (mur qui a
+    // avance sur lui pendant un deplacement camera), on le ramene FLUSH contre
+    // la surface du mur — bornes alignees sur la hitbox joueur pour ne pas
+    // l'eloigner du mur (le wall-jump teste a 2px du bord de la hitbox). Le
+    // haut reste libre. Si le clamp le pousserait dans un solide, il est
+    // ecrase (meme regle que le mur arriere du scroll classique).
     private void ClampPlayersFollow(Level level)
     {
       float winW = WinW;
-      float minX = camX + WINDOW_MARGIN;
-      float maxX = camX + winW - WINDOW_MARGIN;
-      float maxY = camY + 240f - WINDOW_MARGIN;
+      float minX = camX + PLAYER_HALF_W;
+      float maxX = camX + winW - PLAYER_HALF_W;
+      float maxY = camY + 240f - PLAYER_FEET;
 
       foreach (Entity entity in level.Players)
       {
@@ -723,6 +884,11 @@ namespace TFModFortRiseSpeedRun
     public override void OnPlayerDeath(Player player, PlayerCorpse corpse, int playerIndex, DeathCause deathType, Vector2 position, int killerIndex)
     {
       base.OnPlayerDeath(player, corpse, playerIndex, deathType, position, killerIndex);
+      // Round gagne via le portail : les morts des perdants ne doivent pas
+      // declencher la logique last-man-standing (final kill / score au dernier
+      // vivant) — la victoire est deja actee par OnGoalEntered.
+      if (this.goalReached)
+        return;
       if (this.wasFinalKill && base.Session.CurrentLevel.LivingPlayers == 0)
       {
         base.CancelFinalKill();

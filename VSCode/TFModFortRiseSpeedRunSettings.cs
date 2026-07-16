@@ -11,6 +11,19 @@ namespace TFModFortRiseSpeedRun
     [SettingsNumber(1, 30)]
     public int SpeedRunSpeed = 3;
 
+    // Acceleration progressive du scroll : toutes les SpeedRunAccelEvery
+    // secondes, la vitesse augmente de SpeedRunAccelAmount (dixiemes de
+    // px/frame). 0 = desactive. S'applique a l'auto scroll et au follow leader
+    // (ou SpeedRunSpeed est la vitesse plancher). La vitesse effective est
+    // plafonnee a 6 px/frame (meme plafond que le suivi leader).
+    [SettingsName("Speed Run acceleration (+tenths px/frame)")]
+    [SettingsNumber(0, 20)]
+    public int SpeedRunAccelAmount = 0;
+
+    [SettingsName("Speed Run acceleration every (s)")]
+    [SettingsNumber(1, 60)]
+    public int SpeedRunAccelEvery = 10;
+
     // Forme du parcours : bande horizontale (scroll droite uniquement) ou anneau
     // carre (droite -> bas -> gauche -> haut, en boucle).
     public const int ShapeHorizontal = 0;
@@ -18,6 +31,17 @@ namespace TFModFortRiseSpeedRun
     [SettingsName("Speed Run shape")]
     [SettingsOptions("Horizontal", "Square")]
     public int SpeedRunShape = ShapeHorizontal;
+
+    // Portail d'arrivee ("trou noir" facon fin de niveau coop) : le premier
+    // joueur qui saute dedans gagne le round, les autres meurent. En HORIZONTAL
+    // il apparait au bout du parcours ; en SQUARE au bout de SpeedRunLaps tours
+    // (modes scroll uniquement — pas de notion de tour en follow players).
+    [SettingsName("Speed Run goal portal")]
+    public bool SpeedRunGoalPortal = true;
+
+    [SettingsName("Speed Run laps before goal (square)")]
+    [SettingsNumber(1, 10)]
+    public int SpeedRunLaps = 3;
 
     // Nombre max de levels du monde a coller bout a bout. Si le monde en a moins,
     // on utilise ce qui est disponible.
