@@ -93,6 +93,15 @@ namespace TFModFortRiseSpeedRun
     private const float LEADER_TARGET = 0.667f;
     private const float LEADER_GAIN = 0.08f;
     private const float LEADER_MAX_SPEED = 6f;
+    // Mode "follow players" (pas de scroll auto) : gain de recentrage sur la
+    // boite englobante des joueurs, vitesse max de la camera, et marge aux bords
+    // au-dela de laquelle le groupe est considere trop ecarte (camera figee).
+    private const float FOLLOW_GAIN = 0.08f;
+    private const float FOLLOW_MAX_SPEED = 6f;
+    private const float FOLLOW_EDGE_MARGIN = WINDOW_MARGIN;
+
+    private static bool FollowPlayersMode =>
+      TFModFortRiseSpeedRunModule.Settings.SpeedRunCamera == TFModFortRiseSpeedRunSettings.CameraFollowPlayers;
 
     private bool scrollInit;
     private bool loopMode;
@@ -108,7 +117,7 @@ namespace TFModFortRiseSpeedRun
     private float pathLen;
     private float pathS;
 
-    private void InitScroll()
+    private void InitScroll(Level level)
     {
       camX = 0f;
       camY = 0f;
@@ -118,7 +127,25 @@ namespace TFModFortRiseSpeedRun
       if (loopMode)
         BuildLoopPath(Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW),
                       Math.Max(0f, SpeedRunLevelSystem.TotalHeightPixels - 240f));
+      // Follow players : la fenetre de depart est centree sur les joueurs au
+      // lieu du coin haut-gauche du parcours. C'est aussi la cible du zoom
+      // d'intro. Re-fait chaque frame de pre-round (cf. UpdateScroll) car les
+      // joueurs peuvent ne pas encore etre dans level.Players au 1er frame
+      // (ajout d'entites differe par le moteur).
+      if (FollowPlayersMode)
+        CenterCamOnPlayers(level);
       scrollInit = true;
+    }
+
+    // Place la fenetre camera centree sur la boite englobante des joueurs
+    // vivants, bornee aux limites du niveau. Ne bouge pas si aucun joueur.
+    private void CenterCamOnPlayers(Level level)
+    {
+      float minX, maxX, minY, maxY;
+      if (!PlayersBounds(level, out minX, out maxX, out minY, out maxY))
+        return;
+      camX = ClampCam((minX + maxX) / 2f - WinW / 2f, Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW));
+      camY = ClampCam((minY + maxY) / 2f - 120f, Math.Max(0f, SpeedRunLevelSystem.TotalHeightPixels - 240f));
     }
 
     // Rectangle a coins arrondis elliptiques. Le coin haut-gauche reste net (depart
@@ -249,7 +276,7 @@ namespace TFModFortRiseSpeedRun
         return;
 
       if (!this.scrollInit)
-        InitScroll();
+        InitScroll(level);
 
       // Zoom pour faire tenir tout le niveau dans la fenetre visible.
       float fitZoom = Math.Min(WinW / SpeedRunLevelSystem.TotalWidthPixels,
@@ -264,6 +291,11 @@ namespace TFModFortRiseSpeedRun
         zoomStarted = true;
         zoomInT = 1f;
       }
+
+      // Follow players : tant que le round n'a pas commence, la fenetre de
+      // depart (cible du zoom d'intro) reste calee sur les joueurs spawnes.
+      if (!base.RoundStarted && FollowPlayersMode)
+        CenterCamOnPlayers(level);
 
       if (!base.RoundStarted && !zoomStarted)
       {
@@ -300,8 +332,16 @@ namespace TFModFortRiseSpeedRun
 
       level.Camera.Zoom = 1f;
 
+      // Mode "follow players" : plus AUCUN scroll automatique, la camera suit
+      // les mouvements du groupe de joueurs.
+      if (FollowPlayersMode)
+      {
+        UpdateFollowPlayers(level);
+        return;
+      }
+
       float baseSpeed = TFModFortRiseSpeedRunModule.Settings.SpeedRunSpeed / 10f * Engine.TimeMult;
-      bool followLeader = TFModFortRiseSpeedRunModule.Settings.SpeedRunFollowLeader;
+      bool followLeader = TFModFortRiseSpeedRunModule.Settings.SpeedRunCamera == TFModFortRiseSpeedRunSettings.CameraFollowLeader;
       bool leaveBehind = TFModFortRiseSpeedRunModule.Settings.SpeedRunLeaveBehind;
 
       int dirX, dirY;
@@ -386,6 +426,135 @@ namespace TFModFortRiseSpeedRun
       if (speed < baseSpeed) speed = baseSpeed;
       if (speed > cap) speed = cap;
       return speed;
+    }
+
+    // ------------------------------------------------------------------
+    // Mode "follow players" : la camera vise le centre de la boite englobante
+    // des joueurs vivants (recentrage proportionnel, vitesse plafonnee).
+    //   - Tout le monde va a droite -> l'ecran se decale a droite (idem gauche,
+    //     haut, bas).
+    //   - Joueurs ecartes de ~la taille de l'ecran -> la camera se fige sur cet
+    //     axe, et des murs invisibles aux bords empechent de sortir de l'ecran.
+    // Pas de wrap, pas de leaveBehind, pas de mort hors-ecran : personne ne peut
+    // etre largue puisque la camera suit tout le monde.
+    // ------------------------------------------------------------------
+    private void UpdateFollowPlayers(Level level)
+    {
+      float minX, maxX, minY, maxY;
+      if (PlayersBounds(level, out minX, out maxX, out minY, out maxY))
+      {
+        float maxCamX = Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW);
+        float maxCamY = Math.Max(0f, SpeedRunLevelSystem.TotalHeightPixels - 240f);
+        camX = FollowAxis(camX, minX, maxX, WinW, maxCamX);
+        camY = FollowAxis(camY, minY, maxY, 240f, maxCamY);
+      }
+
+      // Etat partage : camera sans direction de scroll (pas de wrap, pas de
+      // murs directionnels).
+      SpeedRunState.CamX = camX;
+      SpeedRunState.CamY = camY;
+      SpeedRunState.DirX = 0;
+      SpeedRunState.DirY = 0;
+
+      level.Camera.X = camX;
+      level.Camera.Y = camY;
+      KillVanillaBorder(level);
+
+      ClampPlayersFollow(level);
+    }
+
+    // Boite englobante des joueurs vivants. Retourne false si aucun.
+    private static bool PlayersBounds(Level level, out float minX, out float maxX, out float minY, out float maxY)
+    {
+      minX = minY = float.PositiveInfinity;
+      maxX = maxY = float.NegativeInfinity;
+      bool any = false;
+      foreach (Entity e in level.Players)
+      {
+        Player p = e as Player;
+        if (p == null || p.Dead)
+          continue;
+        if (p.X < minX) minX = p.X;
+        if (p.X > maxX) maxX = p.X;
+        if (p.Y < minY) minY = p.Y;
+        if (p.Y > maxY) maxY = p.Y;
+        any = true;
+      }
+      return any;
+    }
+
+    private static float ClampCam(float v, float max)
+    {
+      if (v < 0f) return 0f;
+      if (v > max) return max;
+      return v;
+    }
+
+    // Recentrage d'un axe sur le milieu [min,max] du groupe. Si le groupe est
+    // plus large que la fenetre (marges comprises), l'axe est fige : c'est le
+    // "plus de decalage quand les joueurs sont distants de la taille de l'ecran".
+    private static float FollowAxis(float cam, float min, float max, float win, float maxCam)
+    {
+      if (max - min >= win - 2f * FOLLOW_EDGE_MARGIN)
+        return cam;
+      float target = ClampCam((min + max) / 2f - win / 2f, maxCam);
+      float step = FOLLOW_GAIN * (target - cam) * Engine.TimeMult;
+      float cap = FOLLOW_MAX_SPEED * Engine.TimeMult;
+      if (step > cap) step = cap;
+      if (step < -cap) step = -cap;
+      return cam + step;
+    }
+
+    // Murs invisibles aux 4 bords de la fenetre (marge comprise). N'agit que si
+    // la camera n'a pas pu suivre (groupe trop ecarte ou bord du niveau) : dans
+    // le cas normal, le recentrage garde tout le monde loin des bords. Le haut
+    // reste libre (un saut au-dessus de l'ecran retombe tout seul). Si le clamp
+    // pousserait le joueur dans un solide, il est ecrase (meme regle que le
+    // mur arriere du scroll classique).
+    private void ClampPlayersFollow(Level level)
+    {
+      float winW = WinW;
+      float minX = camX + WINDOW_MARGIN;
+      float maxX = camX + winW - WINDOW_MARGIN;
+      float maxY = camY + 240f - WINDOW_MARGIN;
+
+      foreach (Entity entity in level.Players)
+      {
+        Player player = entity as Player;
+        if (player == null || player.Dead)
+          continue;
+
+        if (player.X < minX)
+        {
+          if (player.CollideCheck(GameTags.Solid, new Vector2(minX, player.Y)))
+          {
+            player.Die(DeathCause.Squish, -1);
+            continue;
+          }
+          player.X = minX;
+        }
+        else if (player.X > maxX)
+        {
+          if (player.CollideCheck(GameTags.Solid, new Vector2(maxX, player.Y)))
+          {
+            player.Die(DeathCause.Squish, -1);
+            continue;
+          }
+          player.X = maxX;
+        }
+
+        // Sol invisible en bas : ne se declenche que si la camera est figee
+        // (sinon elle aurait suivi le joueur qui tombe).
+        if (player.Y > maxY)
+        {
+          if (player.CollideCheck(GameTags.Solid, new Vector2(player.X, maxY)))
+          {
+            player.Die(DeathCause.Squish, -1);
+            continue;
+          }
+          player.Y = maxY;
+        }
+      }
     }
 
     private void OffscreenDeathCheck(Level level)

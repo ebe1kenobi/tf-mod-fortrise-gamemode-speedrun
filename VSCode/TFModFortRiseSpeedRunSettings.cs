@@ -25,10 +25,23 @@ namespace TFModFortRiseSpeedRun
     [SettingsNumber(2, 30)]
     public int SpeedRunMaxLevels = 10;
 
-    // Option 1 : la camera suit le joueur le plus avance (le "premier" controle
-    // la vitesse), au lieu d'un scroll a vitesse fixe.
-    [SettingsName("Speed Run camera follows leader")]
-    public bool SpeedRunFollowLeader = true;
+    // Mode camera (3 modes mutuellement exclusifs) :
+    //   - AutoScroll    : scroll a vitesse fixe (SpeedRunSpeed).
+    //   - FollowLeader  : scroll pilote par le joueur le plus avance
+    //                     (SpeedRunSpeed = vitesse plancher).
+    //   - FollowPlayers : plus de scroll automatique du tout. La camera suit les
+    //     mouvements du groupe (elle vise le centre de leur boite englobante) :
+    //     si tout le monde va a droite, l'ecran se decale a droite, etc. Si les
+    //     joueurs sont ecartes de la taille de l'ecran, la camera ne bouge plus
+    //     et des murs invisibles aux bords empechent de sortir de l'ecran.
+    //     SpeedRunSpeed / SpeedRunLeaveBehind / SpeedRunOffscreenDeathDelay sont
+    //     alors sans effet.
+    public const int CameraAutoScroll = 0;
+    public const int CameraFollowLeader = 1;
+    public const int CameraFollowPlayers = 2;
+    [SettingsName("Speed Run camera")]
+    [SettingsOptions("Auto scroll", "Follow leader", "Follow players")]
+    public int SpeedRunCamera = CameraFollowLeader;
 
     // Option 2 : ne plus bloquer le bord arriere -> les retardataires sortent de
     // l'ecran (au lieu d'etre pousses/ecrases) et meurent apres N secondes hors-ecran.

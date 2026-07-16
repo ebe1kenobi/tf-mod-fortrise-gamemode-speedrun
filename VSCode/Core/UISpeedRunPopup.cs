@@ -16,6 +16,9 @@ namespace TFModFortRiseSpeedRun
       public Func<string> Value;
       public Action Left;
       public Action Right;
+      // null = toujours visible. Un champ cache est saute par la navigation et
+      // non dessine (options sans effet dans le mode camera courant).
+      public Func<bool> Visible;
     }
 
     private readonly BorderButton ownerButton;
@@ -50,11 +53,33 @@ namespace TFModFortRiseSpeedRun
         Left = () => s.SpeedRunShape = 1 - s.SpeedRunShape,
         Right = () => s.SpeedRunShape = 1 - s.SpeedRunShape
       });
-      fields.Add(IntField("SPEED", () => s.SpeedRunSpeed, v => s.SpeedRunSpeed = v, 1, 30));
+
+      // Mode camera (3 valeurs) ; les options propres au scroll sont cachees en
+      // FOLLOW PLAYERS (elles n'ont aucun effet dans ce mode).
+      string[] camNames = { "AUTO SCROLL", "FOLLOW LEADER", "FOLLOW PLAYERS" };
+      fields.Add(new Field
+      {
+        Label = "CAMERA",
+        Value = () => camNames[Calc.Clamp(s.SpeedRunCamera, 0, camNames.Length - 1)],
+        Left = () => s.SpeedRunCamera = (s.SpeedRunCamera + camNames.Length - 1) % camNames.Length,
+        Right = () => s.SpeedRunCamera = (s.SpeedRunCamera + 1) % camNames.Length
+      });
+      Func<bool> scrollMode = () => s.SpeedRunCamera != TFModFortRiseSpeedRunSettings.CameraFollowPlayers;
+
+      Field speed = IntField("SPEED", () => s.SpeedRunSpeed, v => s.SpeedRunSpeed = v, 1, 30);
+      speed.Visible = scrollMode;
+      fields.Add(speed);
+
       fields.Add(IntField("LEVELS", () => s.SpeedRunMaxLevels, v => s.SpeedRunMaxLevels = v, 2, 30));
-      fields.Add(BoolField("FOLLOW LEADER", () => s.SpeedRunFollowLeader, v => s.SpeedRunFollowLeader = v));
-      fields.Add(BoolField("LEAVE BEHIND", () => s.SpeedRunLeaveBehind, v => s.SpeedRunLeaveBehind = v));
-      fields.Add(IntField("OFFSCREEN DEATH (s)", () => s.SpeedRunOffscreenDeathDelay, v => s.SpeedRunOffscreenDeathDelay = v, 1, 15));
+
+      Field leaveBehind = BoolField("LEAVE BEHIND", () => s.SpeedRunLeaveBehind, v => s.SpeedRunLeaveBehind = v);
+      leaveBehind.Visible = scrollMode;
+      fields.Add(leaveBehind);
+
+      Field offscreenDeath = IntField("OFFSCREEN DEATH (s)", () => s.SpeedRunOffscreenDeathDelay, v => s.SpeedRunOffscreenDeathDelay = v, 1, 15);
+      offscreenDeath.Visible = () => scrollMode() && s.SpeedRunLeaveBehind;
+      fields.Add(offscreenDeath);
+
       fields.Add(BoolField("SAME SPAWN (RACE)", () => s.SpeedRunSameSpawn, v => s.SpeedRunSameSpawn = v));
       fields.Add(BoolField("DISABLE ARROWS", () => s.SpeedRunNoArrows, v => s.SpeedRunNoArrows = v));
       fields.Add(BoolField("DISABLE STOMP", () => s.SpeedRunNoStomp, v => s.SpeedRunNoStomp = v));
@@ -114,10 +139,26 @@ namespace TFModFortRiseSpeedRun
         ownerButton.Selected = true;
     }
 
+    // Champs actuellement visibles (les options sans effet dans le mode camera
+    // courant sont cachees). `selected` indexe cette liste : les champs caches
+    // sont donc sautes naturellement par la navigation.
+    private List<Field> VisibleFields()
+    {
+      List<Field> vis = new List<Field>();
+      for (int i = 0; i < fields.Count; i++)
+        if (fields[i].Visible == null || fields[i].Visible())
+          vis.Add(fields[i]);
+      return vis;
+    }
+
     public override void Update()
     {
       base.Update();
       MenuInput.Update();
+
+      List<Field> vis = VisibleFields();
+      if (selected >= vis.Count)
+        selected = vis.Count - 1;
 
       if (MenuInput.Up && selected > 0)
       {
@@ -125,7 +166,7 @@ namespace TFModFortRiseSpeedRun
         Sounds.ui_move1.Play(160f, 1f);
         return;
       }
-      if (MenuInput.Down && selected < fields.Count - 1)
+      if (MenuInput.Down && selected < vis.Count - 1)
       {
         selected++;
         Sounds.ui_move1.Play(160f, 1f);
@@ -133,13 +174,13 @@ namespace TFModFortRiseSpeedRun
       }
       if (MenuInput.Left)
       {
-        fields[selected].Left();
+        vis[selected].Left();
         Sounds.ui_click.Play(160f, 1f);
         return;
       }
       if (MenuInput.Right)
       {
-        fields[selected].Right();
+        vis[selected].Right();
         Sounds.ui_click.Play(160f, 1f);
         return;
       }
@@ -153,15 +194,16 @@ namespace TFModFortRiseSpeedRun
       Draw.OutlineTextCentered(TFGame.Font, "SPEED RUN", Position + new Vector2(0f, -86f), Color.White, 2f);
       Draw.TextCentered(TFGame.Font, "UP/DOWN: CHAMP   LEFT/RIGHT: AJUSTER", Position + new Vector2(0f, -72f), Color.Gray);
 
+      List<Field> vis = VisibleFields();
       float rowY = Position.Y - 56f;
-      for (int i = 0; i < fields.Count; i++)
+      for (int i = 0; i < vis.Count; i++)
       {
         bool sel = i == selected;
         Color labelColor = sel ? Calc.HexToColor("F87858") : Color.White;
         Color valueColor = sel ? Calc.HexToColor("FFEC5E") : Color.Gray;
         string prefix = sel ? "> " : "  ";
-        Draw.Text(TFGame.Font, prefix + fields[i].Label, new Vector2(Position.X - 100f, rowY), labelColor);
-        Draw.Text(TFGame.Font, fields[i].Value(), new Vector2(Position.X + 50f, rowY), valueColor);
+        Draw.Text(TFGame.Font, prefix + vis[i].Label, new Vector2(Position.X - 100f, rowY), labelColor);
+        Draw.Text(TFGame.Font, vis[i].Value(), new Vector2(Position.X + 50f, rowY), valueColor);
         rowY += 13f;
       }
 
