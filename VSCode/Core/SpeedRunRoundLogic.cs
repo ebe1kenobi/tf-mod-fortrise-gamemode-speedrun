@@ -12,13 +12,13 @@ namespace TFModFortRiseSpeedRun
   // (spawn FFA, coffres, fin de round au dernier survivant). Le scrolling caméra,
   // le mur invisible et le wrap relatif-caméra seront ajoutes dans OnUpdate lors
   // des etapes suivantes.
-  public class LoopScrollRoundLogic : RoundLogic
+  public class SpeedRunRoundLogic : RoundLogic
   {
     private RoundEndCounter roundEndCounter;
     private bool done;
     private bool wasFinalKill;
 
-    public LoopScrollRoundLogic(Session session) : base(session, true)
+    public SpeedRunRoundLogic(Session session) : base(session, true)
     {
       this.roundEndCounter = new RoundEndCounter(session);
       // Pas de miasma anti-stalling : le round dure longtemps (grand niveau qui
@@ -113,11 +113,11 @@ namespace TFModFortRiseSpeedRun
       camX = 0f;
       camY = 0f;
       pathS = 0f;
-      loopMode = LoopScrollLevelSystem.IsLoop;
-      bandMaxCamX = Math.Max(0f, LoopScrollLevelSystem.TotalWidthPixels - WinW);
+      loopMode = SpeedRunLevelSystem.IsLoop;
+      bandMaxCamX = Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW);
       if (loopMode)
-        BuildLoopPath(Math.Max(0f, LoopScrollLevelSystem.TotalWidthPixels - WinW),
-                      Math.Max(0f, LoopScrollLevelSystem.TotalHeightPixels - 240f));
+        BuildLoopPath(Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW),
+                      Math.Max(0f, SpeedRunLevelSystem.TotalHeightPixels - 240f));
       scrollInit = true;
     }
 
@@ -230,6 +230,16 @@ namespace TFModFortRiseSpeedRun
     {
       level.Camera.Zoom = zoom;
       level.Camera.Position = center - new Vector2(WinW / 2f, 120f) / zoom;
+      KillVanillaBorder(level);
+    }
+
+    // Le jeu dessine une barre noire de 2px (Level.CoreRender) quand Camera.X/Y != 0,
+    // gardee par `Camera.Origin == Vector2.Zero`. En wide-screen elle tombe en plein
+    // milieu. On met une origine minuscule non nulle : le test echoue (barre non
+    // dessinee) mais la vue ne bouge pas (l'origine est castee en int dans la matrice).
+    private static void KillVanillaBorder(Level level)
+    {
+      level.Camera.Origin = new Vector2(0.0001f, 0f);
     }
 
     private void UpdateScroll()
@@ -242,14 +252,14 @@ namespace TFModFortRiseSpeedRun
         InitScroll();
 
       // Zoom pour faire tenir tout le niveau dans la fenetre visible.
-      float fitZoom = Math.Min(WinW / LoopScrollLevelSystem.TotalWidthPixels,
-                               240f / LoopScrollLevelSystem.TotalHeightPixels);
-      Vector2 levelCenter = new Vector2(LoopScrollLevelSystem.TotalWidthPixels / 2f,
-                                        LoopScrollLevelSystem.TotalHeightPixels / 2f);
+      float fitZoom = Math.Min(WinW / SpeedRunLevelSystem.TotalWidthPixels,
+                               240f / SpeedRunLevelSystem.TotalHeightPixels);
+      Vector2 levelCenter = new Vector2(SpeedRunLevelSystem.TotalWidthPixels / 2f,
+                                        SpeedRunLevelSystem.TotalHeightPixels / 2f);
 
       // Option desactivee : pas de vue d'ensemble ni d'animation, la camera se
       // place directement sur la fenetre de depart.
-      if (!TFModFortRiseSpeedRunModule.Settings.loopScrollIntroZoom)
+      if (!TFModFortRiseSpeedRunModule.Settings.SpeedRunIntroZoom)
       {
         zoomStarted = true;
         zoomInT = 1f;
@@ -290,9 +300,9 @@ namespace TFModFortRiseSpeedRun
 
       level.Camera.Zoom = 1f;
 
-      float baseSpeed = TFModFortRiseSpeedRunModule.Settings.loopScrollSpeed / 10f * Engine.TimeMult;
-      bool followLeader = TFModFortRiseSpeedRunModule.Settings.loopScrollFollowLeader;
-      bool leaveBehind = TFModFortRiseSpeedRunModule.Settings.loopScrollLeaveBehind;
+      float baseSpeed = TFModFortRiseSpeedRunModule.Settings.SpeedRunSpeed / 10f * Engine.TimeMult;
+      bool followLeader = TFModFortRiseSpeedRunModule.Settings.SpeedRunFollowLeader;
+      bool leaveBehind = TFModFortRiseSpeedRunModule.Settings.SpeedRunLeaveBehind;
 
       int dirX, dirY;
       if (loopMode)
@@ -322,13 +332,14 @@ namespace TFModFortRiseSpeedRun
       }
 
       // Etat partage lu par les patches de wrap et le clamp.
-      LoopScrollState.CamX = camX;
-      LoopScrollState.CamY = camY;
-      LoopScrollState.DirX = dirX;
-      LoopScrollState.DirY = dirY;
+      SpeedRunState.CamX = camX;
+      SpeedRunState.CamY = camY;
+      SpeedRunState.DirX = dirX;
+      SpeedRunState.DirY = dirY;
 
       level.Camera.X = camX;
       level.Camera.Y = camY;
+      KillVanillaBorder(level);
 
       ClampPlayersToWindow(level, dirX, dirY, leaveBehind);
       if (leaveBehind)
@@ -381,7 +392,7 @@ namespace TFModFortRiseSpeedRun
     {
       if (offscreenTimer == null)
         return;
-      float threshold = TFModFortRiseSpeedRunModule.Settings.loopScrollOffscreenDeathDelay * 60f;
+      float threshold = TFModFortRiseSpeedRunModule.Settings.SpeedRunOffscreenDeathDelay * 60f;
 
       foreach (Entity e in level.Players)
       {

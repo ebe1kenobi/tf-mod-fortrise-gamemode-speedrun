@@ -16,7 +16,7 @@ namespace TFModFortRiseSpeedRun
   // Deux ressources creees en 320x240 en dur doivent suivre : le render target
   // du niveau (Level.foregroundRenderTarget) et le canvas d'eclairage
   // (LightingLayer.Canvas).
-  internal static class LoopScrollWideScreen
+  internal static class SpeedRunWideScreen
   {
     public const int WIDE_WIDTH = 420;
     private const int NORMAL_WIDTH = 320;
@@ -27,6 +27,7 @@ namespace TFModFortRiseSpeedRun
       On.TowerFall.Level.ctor += LevelCtor_patch;
       On.TowerFall.Level.HandleGraphicsDispose += LevelHandleGraphicsDispose_patch;
       On.TowerFall.LightingLayer.ctor += LightingCtor_patch;
+      On.TowerFall.Level.Render += LevelRender_patch;
       On.TowerFall.MainMenu.ctor += MainMenuCtor_patch;
     }
 
@@ -36,15 +37,36 @@ namespace TFModFortRiseSpeedRun
       On.TowerFall.Level.ctor -= LevelCtor_patch;
       On.TowerFall.Level.HandleGraphicsDispose -= LevelHandleGraphicsDispose_patch;
       On.TowerFall.LightingLayer.ctor -= LightingCtor_patch;
+      On.TowerFall.Level.Render -= LevelRender_patch;
       On.TowerFall.MainMenu.ctor -= MainMenuCtor_patch;
       RestoreScreen();
     }
+
+    // Le decor (Background) ne couvre que 320px de large ; au-dela le canvas
+    // n'est pas nettoye (contenu residuel). On nettoie le render target d'ecran en
+    // noir juste avant que le niveau ne se dessine, pour que la zone hors 320 soit
+    // propre (fond noir + tuiles du niveau visibles).
+    private static void LevelRender_patch(On.TowerFall.Level.orig_Render orig, Level self)
+    {
+      if (IsWide)
+      {
+        Engine.Instance.GraphicsDevice.SetRenderTarget(Engine.Instance.Screen.RenderTarget);
+        Engine.Instance.GraphicsDevice.Clear(Color.Black);
+      }
+      orig(self);
+    }
+
+    // Neutralise entierement le wide-screen (mis a true si WiderSetMod est present,
+    // pour ne pas entrer en conflit avec son propre redimensionnement d'ecran).
+    // Comme tous les patches sont gardes par IsWide, ce flag les rend tous inertes.
+    internal static bool Disabled;
 
     internal static bool IsWide
     {
       get
       {
-        return Engine.Instance != null
+        return !Disabled
+            && Engine.Instance != null
             && Engine.Instance.Screen != null
             && Engine.Instance.Screen.Width != NORMAL_WIDTH;
       }
@@ -83,8 +105,8 @@ namespace TFModFortRiseSpeedRun
       bool wantWide = session != null
                    && session.MatchSettings != null
                    && session.MatchSettings.IsCustom
-                   && session.MatchSettings.CurrentModeName == nameof(LoopScroll)
-                   && TFModFortRiseSpeedRunModule.Settings.loopScrollWideScreen;
+                   && session.MatchSettings.CurrentModeName == nameof(SpeedRun)
+                   && TFModFortRiseSpeedRunModule.Settings.SpeedRunWideScreen;
       if (wantWide)
         ResizeScreen(WIDE_WIDTH);
       else

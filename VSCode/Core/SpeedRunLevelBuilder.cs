@@ -14,7 +14,7 @@ namespace TFModFortRiseSpeedRun
   //
   // Ces helpers normalisent chaque level source en grille pleine 32x24 puis
   // assemblent une grande grille en plaçant les blocs à des offsets (col,row).
-  internal static class LoopScrollLevelBuilder
+  internal static class SpeedRunLevelBuilder
   {
     public const int BLOCK_W = 32; // tuiles par bloc (largeur)
     public const int BLOCK_H = 24; // tuiles par bloc (hauteur)

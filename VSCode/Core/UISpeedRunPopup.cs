@@ -7,8 +7,8 @@ using TowerFall;
 namespace TFModFortRiseSpeedRun
 {
   // Popup de reglage du mode Loop Scroll, ouverte avec Y depuis le bouton de mode
-  // (cf. MyLoopScrollModeButton). Edite directement les ModuleSettings.
-  public class UILoopScrollPopup : Entity
+  // (cf. MySpeedRunModeButton). Edite directement les ModuleSettings.
+  public class UISpeedRunPopup : Entity
   {
     private class Field
     {
@@ -22,9 +22,17 @@ namespace TFModFortRiseSpeedRun
     private readonly List<Field> fields = new List<Field>();
     private int selected;
 
-    public static bool IsOpen { get; private set; }
+    // Instance courante de la popup (null si aucune).
+    public static UISpeedRunPopup Current;
 
-    public UILoopScrollPopup(BorderButton ownerButton)
+    // Ouverte seulement si l'instance courante appartient a la scene ACTIVE.
+    // Auto-guerison : si la scene a ete remplacee alors que la popup etait ouverte
+    // (ex: on lance le match en appuyant sur Start pendant que la popup est la),
+    // son Removed() n'est jamais appele ; mais sa Scene ne correspond plus a la
+    // scene courante -> elle ne compte plus comme ouverte, et le hint/Y reviennent.
+    public static bool IsOpen => Current != null && Current.Scene == Engine.Instance.Scene;
+
+    public UISpeedRunPopup(BorderButton ownerButton)
     {
       this.ownerButton = ownerButton;
       Position = new Vector2(160f, 120f);
@@ -38,20 +46,20 @@ namespace TFModFortRiseSpeedRun
       fields.Add(new Field
       {
         Label = "SHAPE",
-        Value = () => s.loopScrollShape == TFModFortRiseSpeedRunSettings.ShapeSquare ? "SQUARE" : "HORIZONTAL",
-        Left = () => s.loopScrollShape = 1 - s.loopScrollShape,
-        Right = () => s.loopScrollShape = 1 - s.loopScrollShape
+        Value = () => s.SpeedRunShape == TFModFortRiseSpeedRunSettings.ShapeSquare ? "SQUARE" : "HORIZONTAL",
+        Left = () => s.SpeedRunShape = 1 - s.SpeedRunShape,
+        Right = () => s.SpeedRunShape = 1 - s.SpeedRunShape
       });
-      fields.Add(IntField("SPEED", () => s.loopScrollSpeed, v => s.loopScrollSpeed = v, 1, 30));
-      fields.Add(IntField("LEVELS", () => s.loopScrollMaxLevels, v => s.loopScrollMaxLevels = v, 2, 30));
-      fields.Add(BoolField("FOLLOW LEADER", () => s.loopScrollFollowLeader, v => s.loopScrollFollowLeader = v));
-      fields.Add(BoolField("LEAVE BEHIND", () => s.loopScrollLeaveBehind, v => s.loopScrollLeaveBehind = v));
-      fields.Add(IntField("OFFSCREEN DEATH (s)", () => s.loopScrollOffscreenDeathDelay, v => s.loopScrollOffscreenDeathDelay = v, 1, 15));
-      fields.Add(BoolField("SAME SPAWN (RACE)", () => s.loopScrollSameSpawn, v => s.loopScrollSameSpawn = v));
-      fields.Add(BoolField("DISABLE ARROWS", () => s.loopScrollNoArrows, v => s.loopScrollNoArrows = v));
-      fields.Add(BoolField("DISABLE STOMP", () => s.loopScrollNoStomp, v => s.loopScrollNoStomp = v));
-      fields.Add(BoolField("INTRO ZOOM", () => s.loopScrollIntroZoom, v => s.loopScrollIntroZoom = v));
-      fields.Add(BoolField("WIDE SCREEN", () => s.loopScrollWideScreen, v => s.loopScrollWideScreen = v));
+      fields.Add(IntField("SPEED", () => s.SpeedRunSpeed, v => s.SpeedRunSpeed = v, 1, 30));
+      fields.Add(IntField("LEVELS", () => s.SpeedRunMaxLevels, v => s.SpeedRunMaxLevels = v, 2, 30));
+      fields.Add(BoolField("FOLLOW LEADER", () => s.SpeedRunFollowLeader, v => s.SpeedRunFollowLeader = v));
+      fields.Add(BoolField("LEAVE BEHIND", () => s.SpeedRunLeaveBehind, v => s.SpeedRunLeaveBehind = v));
+      fields.Add(IntField("OFFSCREEN DEATH (s)", () => s.SpeedRunOffscreenDeathDelay, v => s.SpeedRunOffscreenDeathDelay = v, 1, 15));
+      fields.Add(BoolField("SAME SPAWN (RACE)", () => s.SpeedRunSameSpawn, v => s.SpeedRunSameSpawn = v));
+      fields.Add(BoolField("DISABLE ARROWS", () => s.SpeedRunNoArrows, v => s.SpeedRunNoArrows = v));
+      fields.Add(BoolField("DISABLE STOMP", () => s.SpeedRunNoStomp, v => s.SpeedRunNoStomp = v));
+      fields.Add(BoolField("INTRO ZOOM", () => s.SpeedRunIntroZoom, v => s.SpeedRunIntroZoom = v));
+      fields.Add(BoolField("WIDE SCREEN", () => s.SpeedRunWideScreen, v => s.SpeedRunWideScreen = v));
     }
 
     private static Field BoolField(string label, Func<bool> get, Action<bool> set)
@@ -79,7 +87,7 @@ namespace TFModFortRiseSpeedRun
     public override void Added()
     {
       base.Added();
-      IsOpen = true;
+      Current = this;
       if (ownerButton != null)
         ownerButton.Selected = false;
       Sounds.ui_pause.Play(160f);
@@ -88,7 +96,8 @@ namespace TFModFortRiseSpeedRun
     public override void Removed()
     {
       base.Removed();
-      IsOpen = false;
+      if (Current == this)
+        Current = null;
       Sounds.ui_unpause.Play(160f);
       MenuInput.Clear();
       if (ownerButton != null)
@@ -131,7 +140,7 @@ namespace TFModFortRiseSpeedRun
     public override void Render()
     {
       Draw.Rect(0f, 0f, 320f, 240f, Color.Black * 0.8f);
-      Draw.OutlineTextCentered(TFGame.Font, "LOOP SCROLL", Position + new Vector2(0f, -86f), Color.White, 2f);
+      Draw.OutlineTextCentered(TFGame.Font, "SPEED RUN", Position + new Vector2(0f, -86f), Color.White, 2f);
       Draw.TextCentered(TFGame.Font, "UP/DOWN: CHAMP   LEFT/RIGHT: AJUSTER", Position + new Vector2(0f, -72f), Color.Gray);
 
       float rowY = Position.Y - 56f;

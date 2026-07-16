@@ -13,7 +13,7 @@ namespace TFModFortRiseSpeedRun
   // Etape actuelle : BANDE HORIZONTALE (tous les levels concatenes de gauche a
   // droite, une seule rangee). Le parcours en anneau (droite/bas/gauche/haut)
   // sera ajoute ensuite en changeant ComputePlacements().
-  public class LoopScrollLevelSystem : VersusLevelSystem
+  public class SpeedRunLevelSystem : VersusLevelSystem
   {
     // Placement d'un bloc (level) dans la grande grille, en blocs.
     private struct Placement
@@ -25,15 +25,15 @@ namespace TFModFortRiseSpeedRun
     }
 
     // Dimensions du niveau combine courant, en tuiles. Lues par les hooks de
-    // rendu (LoopScrollRenderPatches : Calc.GetBitData/ReadCSVIntGrid, Tilemap.ctor).
-    public static int WidthTiles = LoopScrollLevelBuilder.BLOCK_W;
-    public static int HeightTiles = LoopScrollLevelBuilder.BLOCK_H;
+    // rendu (SpeedRunRenderPatches : Calc.GetBitData/ReadCSVIntGrid, Tilemap.ctor).
+    public static int WidthTiles = SpeedRunLevelBuilder.BLOCK_W;
+    public static int HeightTiles = SpeedRunLevelBuilder.BLOCK_H;
 
     // Largeur/hauteur totales en pixels du niveau combine (pour le scroll camera).
     public static int TotalWidthPixels = 320;
     public static int TotalHeightPixels = 240;
 
-    // Grille de blocs et forme du parcours (lus par LoopScrollRoundLogic pour
+    // Grille de blocs et forme du parcours (lus par SpeedRunRoundLogic pour
     // piloter la camera).
     public static int GridCols = 1;
     public static int GridRows = 1;
@@ -41,7 +41,7 @@ namespace TFModFortRiseSpeedRun
 
     private static readonly Random Rng = new Random();
 
-    public LoopScrollLevelSystem(VersusTowerData tower) : base(tower)
+    public SpeedRunLevelSystem(VersusTowerData tower) : base(tower)
     {
     }
 
@@ -75,11 +75,11 @@ namespace TFModFortRiseSpeedRun
         ordered.Add(paths[(start + i) % paths.Count]);
 
       // Limite au nombre de levels demande dans les settings.
-      int maxLevels = TFModFortRiseSpeedRunModule.Settings.loopScrollMaxLevels;
+      int maxLevels = TFModFortRiseSpeedRunModule.Settings.SpeedRunMaxLevels;
       if (maxLevels > 0 && ordered.Count > maxLevels)
         ordered = ordered.GetRange(0, maxLevels);
 
-      bool square = TFModFortRiseSpeedRunModule.Settings.loopScrollShape == TFModFortRiseSpeedRunSettings.ShapeSquare
+      bool square = TFModFortRiseSpeedRunModule.Settings.SpeedRunShape == TFModFortRiseSpeedRunSettings.ShapeSquare
                     && ordered.Count >= 4;
 
       List<Placement> placements = square
@@ -89,8 +89,8 @@ namespace TFModFortRiseSpeedRun
       GridCols = gridCols;
       GridRows = gridRows;
       IsLoop = square;
-      WidthTiles = gridCols * LoopScrollLevelBuilder.BLOCK_W;
-      HeightTiles = gridRows * LoopScrollLevelBuilder.BLOCK_H;
+      WidthTiles = gridCols * SpeedRunLevelBuilder.BLOCK_W;
+      HeightTiles = gridRows * SpeedRunLevelBuilder.BLOCK_H;
       TotalWidthPixels = WidthTiles * 10;
       TotalHeightPixels = HeightTiles * 10;
 
@@ -154,13 +154,13 @@ namespace TFModFortRiseSpeedRun
 
     private XmlElement BuildCombinedLevel(List<Placement> placements, int gridCols, int gridRows, bool isLoop)
     {
-      int rows = gridRows * LoopScrollLevelBuilder.BLOCK_H;
-      int cols = gridCols * LoopScrollLevelBuilder.BLOCK_W;
+      int rows = gridRows * SpeedRunLevelBuilder.BLOCK_H;
+      int cols = gridCols * SpeedRunLevelBuilder.BLOCK_W;
 
-      bool[][] solids = LoopScrollLevelBuilder.NewBoolGrid(rows, cols);
-      bool[][] bg = LoopScrollLevelBuilder.NewBoolGrid(rows, cols);
-      int[][] solidTiles = LoopScrollLevelBuilder.NewIntGrid(rows, cols, -1);
-      int[][] bgTiles = LoopScrollLevelBuilder.NewIntGrid(rows, cols, -1);
+      bool[][] solids = SpeedRunLevelBuilder.NewBoolGrid(rows, cols);
+      bool[][] bg = SpeedRunLevelBuilder.NewBoolGrid(rows, cols);
+      int[][] solidTiles = SpeedRunLevelBuilder.NewIntGrid(rows, cols, -1);
+      int[][] bgTiles = SpeedRunLevelBuilder.NewIntGrid(rows, cols, -1);
 
       XmlDocument doc = new XmlDocument();
       XmlElement level = doc.CreateElement("level");
@@ -180,13 +180,13 @@ namespace TFModFortRiseSpeedRun
       foreach (Placement p in placements)
       {
         XmlElement src = Calc.LoadXML(p.Path)["level"];
-        int colOff = p.Col * LoopScrollLevelBuilder.BLOCK_W;
-        int rowOff = p.Row * LoopScrollLevelBuilder.BLOCK_H;
+        int colOff = p.Col * SpeedRunLevelBuilder.BLOCK_W;
+        int rowOff = p.Row * SpeedRunLevelBuilder.BLOCK_H;
         int dxPixels = p.Col * 320;
         int dyPixels = p.Row * 240;
 
-        bool[][] blockSolids = LoopScrollLevelBuilder.ParseBits(src["Solids"]?.InnerText);
-        bool[][] blockBG = LoopScrollLevelBuilder.ParseBits(src["BG"]?.InnerText);
+        bool[][] blockSolids = SpeedRunLevelBuilder.ParseBits(src["Solids"]?.InnerText);
+        bool[][] blockBG = SpeedRunLevelBuilder.ParseBits(src["BG"]?.InnerText);
 
         // Tour procedurale : generer la geometrie du bloc en coordonnees LOCALES
         // 32x24 avec les generateurs vanilla (impossible sur le grand niveau, ils
@@ -194,10 +194,10 @@ namespace TFModFortRiseSpeedRun
         if (this.VersusTowerData.Procedural)
           GenerateProceduralBlock(src, ref blockSolids, ref blockBG);
 
-        LoopScrollLevelBuilder.BlitBits(solids, blockSolids, colOff, rowOff);
-        LoopScrollLevelBuilder.BlitBits(bg, blockBG, colOff, rowOff);
-        LoopScrollLevelBuilder.BlitInts(solidTiles, LoopScrollLevelBuilder.ParseCSV(src["SolidTiles"]?.InnerText), colOff, rowOff);
-        LoopScrollLevelBuilder.BlitInts(bgTiles, LoopScrollLevelBuilder.ParseCSV(src["BGTiles"]?.InnerText), colOff, rowOff);
+        SpeedRunLevelBuilder.BlitBits(solids, blockSolids, colOff, rowOff);
+        SpeedRunLevelBuilder.BlitBits(bg, blockBG, colOff, rowOff);
+        SpeedRunLevelBuilder.BlitInts(solidTiles, SpeedRunLevelBuilder.ParseCSV(src["SolidTiles"]?.InnerText), colOff, rowOff);
+        SpeedRunLevelBuilder.BlitInts(bgTiles, SpeedRunLevelBuilder.ParseCSV(src["BGTiles"]?.InnerText), colOff, rowOff);
 
         if (bgTileset == null && src["BGTiles"] != null)
           bgTileset = src["BGTiles"].GetAttribute("tileset");
@@ -226,7 +226,7 @@ namespace TFModFortRiseSpeedRun
               continue;
 
             XmlElement copy = (XmlElement)doc.ImportNode(srcEntity, true);
-            LoopScrollLevelBuilder.OffsetEntity(copy, dxPixels, dyPixels);
+            SpeedRunLevelBuilder.OffsetEntity(copy, dxPixels, dyPixels);
             copy.SetAttribute("id", id.ToString());
             entities.AppendChild(copy);
             id++;
@@ -244,7 +244,7 @@ namespace TFModFortRiseSpeedRun
         for (int r = 0; r < gridRows; r++)
           for (int c = 0; c < gridCols; c++)
             if (!occupied.Contains(r * gridCols + c))
-              LoopScrollLevelBuilder.FillBitsSolid(solids, c * LoopScrollLevelBuilder.BLOCK_W, r * LoopScrollLevelBuilder.BLOCK_H);
+              SpeedRunLevelBuilder.FillBitsSolid(solids, c * SpeedRunLevelBuilder.BLOCK_W, r * SpeedRunLevelBuilder.BLOCK_H);
       }
 
       // Perce les jointures entre blocs consecutifs du parcours pour qu'ils
@@ -253,27 +253,27 @@ namespace TFModFortRiseSpeedRun
 
       // Ferme le grand niveau par un cadre solide : plus de trous en haut/bas
       // (donc plus de wrap vertical necessaire) et murs de bordure fermes.
-      LoopScrollLevelBuilder.FillSolidBorder(solids, BORDER_THICKNESS);
+      SpeedRunLevelBuilder.FillSolidBorder(solids, BORDER_THICKNESS);
 
       XmlElement solidsEl = doc.CreateElement("Solids");
       solidsEl.SetAttribute("exportMode", "Bitstring");
-      solidsEl.InnerText = LoopScrollLevelBuilder.BitsToString(solids);
+      solidsEl.InnerText = SpeedRunLevelBuilder.BitsToString(solids);
 
       XmlElement bgEl = doc.CreateElement("BG");
       bgEl.SetAttribute("exportMode", "Bitstring");
-      bgEl.InnerText = LoopScrollLevelBuilder.BitsToString(bg);
+      bgEl.InnerText = SpeedRunLevelBuilder.BitsToString(bg);
 
       XmlElement solidTilesEl = doc.CreateElement("SolidTiles");
       solidTilesEl.SetAttribute("exportMode", "CSV");
       if (solidTileset != null)
         solidTilesEl.SetAttribute("tileset", solidTileset);
-      solidTilesEl.InnerText = LoopScrollLevelBuilder.IntsToCSV(solidTiles);
+      solidTilesEl.InnerText = SpeedRunLevelBuilder.IntsToCSV(solidTiles);
 
       XmlElement bgTilesEl = doc.CreateElement("BGTiles");
       bgTilesEl.SetAttribute("exportMode", "CSV");
       if (bgTileset != null)
         bgTilesEl.SetAttribute("tileset", bgTileset);
-      bgTilesEl.InnerText = LoopScrollLevelBuilder.IntsToCSV(bgTiles);
+      bgTilesEl.InnerText = SpeedRunLevelBuilder.IntsToCSV(bgTiles);
 
       level.AppendChild(entities);
       level.AppendChild(solidsEl);
@@ -310,11 +310,11 @@ namespace TFModFortRiseSpeedRun
       if (rects.Count == 0)
         return;
 
-      bool[,] baseData = LoopScrollLevelBuilder.ToXY(blockSolids);
+      bool[,] baseData = SpeedRunLevelBuilder.ToXY(blockSolids);
       bool[,] generated = LevelRandomGeometry.GenerateData(rects, baseData);
       bool[,] bgData = LevelRandomBGTiles.GenerateBitData(generated);
-      blockSolids = LoopScrollLevelBuilder.FromXY(generated);
-      blockBG = LoopScrollLevelBuilder.FromXY(bgData);
+      blockSolids = SpeedRunLevelBuilder.FromXY(generated);
+      blockBG = SpeedRunLevelBuilder.FromXY(bgData);
     }
 
     // Largeur (colonnes) de la porte de chaque cote de la jointure, et rangees de
@@ -339,16 +339,16 @@ namespace TFModFortRiseSpeedRun
         if (a.Row == b.Row && System.Math.Abs(a.Col - b.Col) == 1)
         {
           // Jointure verticale (blocs cote a cote) -> porte verticale.
-          int boundaryCol = System.Math.Max(a.Col, b.Col) * LoopScrollLevelBuilder.BLOCK_W;
-          int rowBlockTop = a.Row * LoopScrollLevelBuilder.BLOCK_H;
-          LoopScrollLevelBuilder.CarveVerticalDoor(solids, solidTiles, boundaryCol, rowBlockTop, DOOR_HALF, CEIL_KEEP, FLOOR_KEEP);
+          int boundaryCol = System.Math.Max(a.Col, b.Col) * SpeedRunLevelBuilder.BLOCK_W;
+          int rowBlockTop = a.Row * SpeedRunLevelBuilder.BLOCK_H;
+          SpeedRunLevelBuilder.CarveVerticalDoor(solids, solidTiles, boundaryCol, rowBlockTop, DOOR_HALF, CEIL_KEEP, FLOOR_KEEP);
         }
         else if (a.Col == b.Col && System.Math.Abs(a.Row - b.Row) == 1)
         {
           // Jointure horizontale (blocs empiles) -> porte horizontale.
-          int boundaryRow = System.Math.Max(a.Row, b.Row) * LoopScrollLevelBuilder.BLOCK_H;
-          int colBlockLeft = a.Col * LoopScrollLevelBuilder.BLOCK_W;
-          LoopScrollLevelBuilder.CarveHorizontalDoor(solids, solidTiles, boundaryRow, colBlockLeft, DOOR_HALF, SIDE_KEEP);
+          int boundaryRow = System.Math.Max(a.Row, b.Row) * SpeedRunLevelBuilder.BLOCK_H;
+          int colBlockLeft = a.Col * SpeedRunLevelBuilder.BLOCK_W;
+          SpeedRunLevelBuilder.CarveHorizontalDoor(solids, solidTiles, boundaryRow, colBlockLeft, DOOR_HALF, SIDE_KEEP);
         }
       }
     }

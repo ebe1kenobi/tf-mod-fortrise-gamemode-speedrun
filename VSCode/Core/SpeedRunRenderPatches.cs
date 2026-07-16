@@ -10,8 +10,8 @@ namespace TFModFortRiseSpeedRun
   //
   // Le loader (LevelLoaderXML.Load) et LevelTiles/LevelBGTiles codent en dur les
   // dimensions 32x24 et la taille du Tilemap (320x240 px). On les redirige vers
-  // les vraies dimensions du niveau combine (LoopScrollLevelSystem.WidthTiles/HeightTiles).
-  internal static class LoopScrollRenderPatches
+  // les vraies dimensions du niveau combine (SpeedRunLevelSystem.WidthTiles/HeightTiles).
+  internal static class SpeedRunRenderPatches
   {
     internal static void Load()
     {
@@ -30,7 +30,7 @@ namespace TFModFortRiseSpeedRun
     }
 
     // Vrai pendant qu'un level du mode Loop Scroll est en cours de chargement/jeu.
-    internal static bool IsLoopScrollActive()
+    internal static bool IsSpeedRunActive()
     {
       Scene scene = Engine.Instance.Scene;
       Session sess = null;
@@ -41,29 +41,29 @@ namespace TFModFortRiseSpeedRun
 
       if (sess == null || sess.MatchSettings == null)
         return false;
-      return sess.MatchSettings.Mode == ModRegisters.GameModeType<LoopScroll>();
+      return sess.MatchSettings.Mode == ModRegisters.GameModeType<SpeedRun>();
     }
 
     private static bool[,] GetBitData_patch(On.Monocle.Calc.orig_GetBitData orig, string data, int width, int height)
     {
-      if (IsLoopScrollActive())
-        return orig(data, LoopScrollLevelSystem.WidthTiles, LoopScrollLevelSystem.HeightTiles);
+      if (IsSpeedRunActive())
+        return orig(data, SpeedRunLevelSystem.WidthTiles, SpeedRunLevelSystem.HeightTiles);
       return orig(data, width, height);
     }
 
     private static int[,] ReadCSVIntGrid_patch(On.Monocle.Calc.orig_ReadCSVIntGrid orig, string data, int width, int height)
     {
-      if (IsLoopScrollActive())
-        return orig(data, LoopScrollLevelSystem.WidthTiles, LoopScrollLevelSystem.HeightTiles);
+      if (IsSpeedRunActive())
+        return orig(data, SpeedRunLevelSystem.WidthTiles, SpeedRunLevelSystem.HeightTiles);
       return orig(data, width, height);
     }
 
     private static void Tilemap_ctor_patch(On.Monocle.Tilemap.orig_ctor orig, Monocle.Tilemap self, int width, int height)
     {
       // Seuls les tilemaps de niveau (320x240) doivent etre agrandis.
-      if (IsLoopScrollActive() && width == 320 && height == 240)
+      if (IsSpeedRunActive() && width == 320 && height == 240)
       {
-        orig(self, LoopScrollLevelSystem.WidthTiles * 10, LoopScrollLevelSystem.HeightTiles * 10);
+        orig(self, SpeedRunLevelSystem.WidthTiles * 10, SpeedRunLevelSystem.HeightTiles * 10);
         return;
       }
       orig(self, width, height);
@@ -75,7 +75,7 @@ namespace TFModFortRiseSpeedRun
     // et on borne a [-1,1] par securite.
     private static float CalculatePan_patch(On.Monocle.SFX.orig_CalculatePan orig, float panX)
     {
-      if (IsLoopScrollActive())
+      if (IsSpeedRunActive())
       {
         float camX = 0f;
         if (Engine.Instance.Scene is Level lvl)

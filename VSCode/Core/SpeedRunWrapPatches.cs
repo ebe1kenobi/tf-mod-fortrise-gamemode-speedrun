@@ -16,7 +16,7 @@ namespace TFModFortRiseSpeedRun
   // teleportation ramenait dans la fenetre TOUTES les entites laissees derriere
   // (torches des autres blocs empilees dans la colonne visible, joueurs
   // abandonnes ramenes a l'ecran au lieu de mourir hors-champ).
-  internal static class LoopScrollWrapPatches
+  internal static class SpeedRunWrapPatches
   {
     internal static void Load()
     {
@@ -41,7 +41,7 @@ namespace TFModFortRiseSpeedRun
     // Position : aucune teleportation aux frontieres 320/240.
     private static void EnforceScreenWrap_patch(On.TowerFall.LevelEntity.orig_EnforceScreenWrap orig, LevelEntity self)
     {
-      if (LoopScrollRenderPatches.IsLoopScrollActive())
+      if (SpeedRunRenderPatches.IsSpeedRunActive())
         return;
       orig(self);
     }
@@ -49,7 +49,7 @@ namespace TFModFortRiseSpeedRun
     // Collision : une seule hitbox reelle, pas de fantomes a +/-320/240.
     private static void BuildHitList_patch(On.TowerFall.WrapHitbox.orig_BuildHitList orig, WrapHitbox self, List<Rectangle> hitList)
     {
-      if (!LoopScrollRenderPatches.IsLoopScrollActive())
+      if (!SpeedRunRenderPatches.IsSpeedRunActive())
       {
         orig(self, hitList);
         return;
@@ -62,14 +62,14 @@ namespace TFModFortRiseSpeedRun
     // ferait tester la collision dans le mauvais bloc).
     private static float ApplyWrapX_patch(On.TowerFall.WrapMath.orig_ApplyWrapX orig, float x)
     {
-      if (LoopScrollRenderPatches.IsLoopScrollActive())
+      if (SpeedRunRenderPatches.IsSpeedRunActive())
         return x;
       return orig(x);
     }
 
     private static float ApplyWrapY_patch(On.TowerFall.WrapMath.orig_ApplyWrapY orig, float y)
     {
-      if (LoopScrollRenderPatches.IsLoopScrollActive())
+      if (SpeedRunRenderPatches.IsSpeedRunActive())
         return y;
       return orig(y);
     }
@@ -77,7 +77,7 @@ namespace TFModFortRiseSpeedRun
     // Rendu : une seule copie, pas de rendus fantomes decales de +/-320/240.
     private static void Render_patch(On.TowerFall.LevelEntity.orig_Render orig, LevelEntity self)
     {
-      if (!LoopScrollRenderPatches.IsLoopScrollActive())
+      if (!SpeedRunRenderPatches.IsSpeedRunActive())
       {
         orig(self);
         return;
@@ -89,7 +89,7 @@ namespace TFModFortRiseSpeedRun
     // ajoute des halos a +/-320/240 en dur quand ScreenWrap est actif).
     private static void DrawLight_patch(On.TowerFall.LevelEntity.orig_DrawLight orig, LevelEntity self, LightingLayer layer)
     {
-      if (!LoopScrollRenderPatches.IsLoopScrollActive())
+      if (!SpeedRunRenderPatches.IsSpeedRunActive())
       {
         orig(self, layer);
         return;

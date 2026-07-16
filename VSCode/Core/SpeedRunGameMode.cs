@@ -15,12 +15,12 @@ namespace TFModFortRiseSpeedRun
   // Etape actuelle (fondation) : le mode se comporte comme un Last Man Standing
   // classique sur un level normal. La concaténation des levels et le scrolling
   // caméra seront branchés dans les etapes suivantes (GetLevelSystem +
-  // LoopScrollRoundLogic.OnUpdate).
-  public class LoopScroll : CustomGameMode
+  // SpeedRunRoundLogic.OnUpdate).
+  public class SpeedRun : CustomGameMode
   {
     public override void Initialize()
     {
-      Name = "Loop Scroll";
+      Name = "Speed Run";
       Icon = TFGame.MenuAtlas["gameModes/warlord"];
       NameColor = Color.Orange;
       CoinOffset = 12;
@@ -30,7 +30,7 @@ namespace TFModFortRiseSpeedRun
 
     public override RoundLogic CreateRoundLogic(Session session)
     {
-      return new LoopScrollRoundLogic(session);
+      return new SpeedRunRoundLogic(session);
     }
 
     // IMPORTANT : dans le flux Versus de FortRise, MatchSettings.LevelSystem est
@@ -43,7 +43,7 @@ namespace TFModFortRiseSpeedRun
       base.StartGame(session);
       if (session.MatchSettings.LevelSystem is VersusLevelSystem vls)
       {
-        session.MatchSettings.LevelSystem = new LoopScrollLevelSystem(vls.VersusTowerData);
+        session.MatchSettings.LevelSystem = new SpeedRunLevelSystem(vls.VersusTowerData);
       }
     }
 
@@ -51,7 +51,7 @@ namespace TFModFortRiseSpeedRun
     // Versus classique passe par StartGame ci-dessus.
     public override LevelSystem GetLevelSystem(LevelData levelData)
     {
-      return new LoopScrollLevelSystem(levelData as VersusTowerData);
+      return new SpeedRunLevelSystem(levelData as VersusTowerData);
     }
   }
 }

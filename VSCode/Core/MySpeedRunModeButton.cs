@@ -6,24 +6,35 @@ namespace TFModFortRiseSpeedRun
 {
   // Sur le bouton de selection de mode Versus, quand le mode Loop Scroll est
   // selectionne : appui sur Y (bouton "fleches") -> ouvre la popup d'options.
-  internal static class MyLoopScrollModeButton
+  internal static class MySpeedRunModeButton
   {
     internal static void Load()
     {
       On.TowerFall.VersusModeButton.Update += Update_patch;
       On.TowerFall.VersusModeButton.Render += Render_patch;
+      On.TowerFall.VersusMapButton.OnConfirm += MapConfirm_patch;
     }
 
     internal static void Unload()
     {
       On.TowerFall.VersusModeButton.Update -= Update_patch;
       On.TowerFall.VersusModeButton.Render -= Render_patch;
+      On.TowerFall.VersusMapButton.OnConfirm -= MapConfirm_patch;
     }
 
-    private static bool IsLoopScrollSelected()
+    // Tant que la popup est ouverte, on ne demarre pas le match (sinon la scene
+    // menu est remplacee sans fermer la popup). Il faut fermer la popup d'abord.
+    private static void MapConfirm_patch(On.TowerFall.VersusMapButton.orig_OnConfirm orig, global::TowerFall.VersusMapButton self)
+    {
+      if (UISpeedRunPopup.IsOpen)
+        return;
+      orig(self);
+    }
+
+    private static bool IsSpeedRunSelected()
     {
       return MainMenu.VersusMatchSettings.IsCustom
-          && MainMenu.VersusMatchSettings.CurrentModeName == nameof(LoopScroll);
+          && MainMenu.VersusMatchSettings.CurrentModeName == nameof(SpeedRun);
     }
 
     private static bool AnyPlayerArrowsPressed()
@@ -39,12 +50,12 @@ namespace TFModFortRiseSpeedRun
 
     private static void Update_patch(On.TowerFall.VersusModeButton.orig_Update orig, global::TowerFall.VersusModeButton self)
     {
-      if (IsLoopScrollSelected() && self.Selected && !UILoopScrollPopup.IsOpen && AnyPlayerArrowsPressed())
+      if (IsSpeedRunSelected() && self.Selected && !UISpeedRunPopup.IsOpen && AnyPlayerArrowsPressed())
       {
         if (self.Scene != null)
         {
           Sounds.ui_click.Play(160f, 1f);
-          self.Scene.Add(new UILoopScrollPopup(self));
+          self.Scene.Add(new UISpeedRunPopup(self));
         }
         return;
       }
@@ -55,7 +66,7 @@ namespace TFModFortRiseSpeedRun
     {
       orig(self);
 
-      if (!self.Selected || UILoopScrollPopup.IsOpen || !IsLoopScrollSelected())
+      if (!self.Selected || UISpeedRunPopup.IsOpen || !IsSpeedRunSelected())
         return;
 
       Vector2 hintPos = self.Position + new Vector2(0f, 22f);
