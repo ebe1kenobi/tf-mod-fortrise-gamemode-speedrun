@@ -103,9 +103,7 @@ namespace TFModFortRiseSpeedRun
     private static void LoaderCtor_patch(On.TowerFall.LevelLoaderXML.orig_ctor orig, LevelLoaderXML self, Session session)
     {
       bool wantWide = session != null
-                   && session.MatchSettings != null
-                   && session.MatchSettings.IsCustom
-                   && session.MatchSettings.CurrentModeName == nameof(SpeedRun)
+                   && SpeedRunRenderPatches.IsSpeedRunMode(session.MatchSettings)
                    && TFModFortRiseSpeedRunModule.Settings.SpeedRunWideScreen;
       if (wantWide)
         ResizeScreen(WIDE_WIDTH);

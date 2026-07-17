@@ -30,18 +30,30 @@ namespace TFModFortRiseSpeedRun
     }
 
     // Vrai pendant qu'un level du mode Loop Scroll est en cours de chargement/jeu.
+    //
+    // Detection AUTORITAIRE via IsCustom + CurrentModeName : ne JAMAIS comparer
+    // MatchSettings.Mode a ModRegisters.GameModeType<SpeedRun>(). Ce dernier
+    // retombe sur Modes.LastManStanding si le lookup de type echoue, ce qui
+    // rendait ce test vrai pendant un vrai Last Man Standing normal -> les
+    // patches speedrun (wrap position + rendus fantomes) s'activaient en mode
+    // normal (joueur non wrappe alors que son HUD l'etait).
     internal static bool IsSpeedRunActive()
     {
-      Scene scene = Engine.Instance.Scene;
+      Scene scene = Engine.Instance != null ? Engine.Instance.Scene : null;
       Session sess = null;
       if (scene is LevelLoaderXML loader)
         sess = loader.Session;
       else if (scene is Level lvl)
         sess = lvl.Session;
 
-      if (sess == null || sess.MatchSettings == null)
-        return false;
-      return sess.MatchSettings.Mode == ModRegisters.GameModeType<SpeedRun>();
+      return IsSpeedRunMode(sess != null ? sess.MatchSettings : null);
+    }
+
+    // Source unique de verite pour "sommes-nous en mode Speed Run", partagee par
+    // tous les hooks du mod.
+    internal static bool IsSpeedRunMode(MatchSettings ms)
+    {
+      return ms != null && ms.IsCustom && ms.CurrentModeName == nameof(SpeedRun);
     }
 
     private static bool[,] GetBitData_patch(On.Monocle.Calc.orig_GetBitData orig, string data, int width, int height)

@@ -39,7 +39,7 @@ namespace TFModFortRiseSpeedRun
     private static bool IsSpeedRun(global::TowerFall.Player self)
     {
       MatchSettings ms = self?.Level?.Session?.MatchSettings;
-      return ms != null && ms.IsCustom && ms.CurrentModeName == nameof(SpeedRun);
+      return SpeedRunRenderPatches.IsSpeedRunMode(ms);
     }
 
     private static void Added_patch(On.TowerFall.Player.orig_Added orig, global::TowerFall.Player self)
