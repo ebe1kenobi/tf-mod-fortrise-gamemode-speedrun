@@ -392,7 +392,7 @@ namespace TFModFortRiseSpeedRun
           speedTenths = MAX_SPEED_TENTHS;
       }
       float baseSpeed = speedTenths / 10f * Engine.TimeMult;
-      bool followLeader = TFModFortRiseSpeedRunModule.Settings.SpeedRunCamera == TFModFortRiseSpeedRunSettings.CameraFollowLeader;
+      bool followLeader = false; //TFModFortRiseSpeedRunModule.Settings.SpeedRunCamera == TFModFortRiseSpeedRunSettings.CameraFollowLeader;
       bool leaveBehind = TFModFortRiseSpeedRunModule.Settings.SpeedRunLeaveBehind;
 
       int dirX, dirY;

@@ -11,7 +11,7 @@ namespace TFModFortRiseSpeedRun
     // au depart pour laisser le temps aux joueurs de suivre.
     [SettingsName("Speed Run speed (tenths of px/frame)")]
     [SettingsNumber(1, 30)]
-    public int SpeedRunSpeed = 3;
+    public int SpeedRunSpeed = 10;
 
     // Acceleration progressive du scroll : toutes les SpeedRunAccelEvery
     // secondes, la vitesse augmente de SpeedRunAccelAmount (dixiemes de
@@ -20,7 +20,7 @@ namespace TFModFortRiseSpeedRun
     // plafonnee a 6 px/frame (meme plafond que le suivi leader).
     [SettingsName("Speed Run acceleration (+tenths px/frame)")]
     [SettingsNumber(0, 20)]
-    public int SpeedRunAccelAmount = 0;
+    public int SpeedRunAccelAmount = 1;
 
     [SettingsName("Speed Run acceleration every (s)")]
     [SettingsNumber(1, 60)]
@@ -32,7 +32,7 @@ namespace TFModFortRiseSpeedRun
     public const int ShapeSquare = 1;
     [SettingsName("Speed Run shape")]
     [SettingsOptions("Horizontal", "Square")]
-    public int SpeedRunShape = ShapeHorizontal;
+    public int SpeedRunShape = ShapeSquare;
 
     // Portail d'arrivee ("trou noir" facon fin de niveau coop) : le premier
     // joueur qui saute dedans gagne le round, les autres meurent. En HORIZONTAL
@@ -63,16 +63,16 @@ namespace TFModFortRiseSpeedRun
     //     SpeedRunSpeed / SpeedRunLeaveBehind / SpeedRunOffscreenDeathDelay sont
     //     alors sans effet.
     public const int CameraAutoScroll = 0;
-    public const int CameraFollowLeader = 1;
+    //public const int CameraFollowLeader = 1;
     public const int CameraFollowPlayers = 2;
     [SettingsName("Speed Run camera")]
-    [SettingsOptions("Auto scroll", "Follow leader", "Follow players")]
-    public int SpeedRunCamera = CameraFollowLeader;
+    [SettingsOptions("Auto scroll",  "Follow players")] ///"Follow leader",
+    public int SpeedRunCamera = CameraAutoScroll;
 
     // Option 2 : ne plus bloquer le bord arriere -> les retardataires sortent de
     // l'ecran (au lieu d'etre pousses/ecrases) et meurent apres N secondes hors-ecran.
     [SettingsName("Speed Run leave players behind")]
-    public bool SpeedRunLeaveBehind = true;
+    public bool SpeedRunLeaveBehind = false;
 
     // Delai (secondes) avant qu'un joueur hors-ecran ne meure (option 2).
     [SettingsName("Speed Run offscreen death delay (s)")]
@@ -91,11 +91,11 @@ namespace TFModFortRiseSpeedRun
     // Surtout utile en SQUARE ou l'on repasse au meme endroit a chaque tour.
     [SettingsName("Speed Run treasure respawn (s)")]
     [SettingsNumber(0, 60)]
-    public int SpeedRunTreasureRespawn = 0;
+    public int SpeedRunTreasureRespawn = 20;
 
     // Contenu possible des coffres : un on/off par type de pickup du jeu.
-    [SettingsName("SR treasure: arrows")] public bool SpeedRunPickupArrows = true;
-    [SettingsName("SR treasure: bomb arrows")] public bool SpeedRunPickupBombArrows = true;
+    [SettingsName("SR treasure: arrows")] public bool SpeedRunPickupArrows = false;
+    [SettingsName("SR treasure: bomb arrows")] public bool SpeedRunPickupBombArrows = false;
     [SettingsName("SR treasure: super bomb arrows")] public bool SpeedRunPickupSuperBombArrows = false;
     [SettingsName("SR treasure: laser arrows")] public bool SpeedRunPickupLaserArrows = false;
     [SettingsName("SR treasure: bramble arrows")] public bool SpeedRunPickupBrambleArrows = false;
@@ -103,18 +103,17 @@ namespace TFModFortRiseSpeedRun
     [SettingsName("SR treasure: bolt arrows")] public bool SpeedRunPickupBoltArrows = false;
     [SettingsName("SR treasure: feather arrows")] public bool SpeedRunPickupFeatherArrows = false;
     [SettingsName("SR treasure: trigger arrows")] public bool SpeedRunPickupTriggerArrows = false;
-    [SettingsName("SR treasure: prism arrows")] public bool SpeedRunPickupPrismArrows = false;
-    [SettingsName("SR treasure: shield")] public bool SpeedRunPickupShield = true;
+    [SettingsName("SR treasure: prism arrows")] public bool SpeedRunPickupPrismArrows = true;
+    [SettingsName("SR treasure: shield")] public bool SpeedRunPickupShield = false;
     [SettingsName("SR treasure: wings")] public bool SpeedRunPickupWings = true;
     [SettingsName("SR treasure: speed boots")] public bool SpeedRunPickupSpeedBoots = true;
     [SettingsName("SR treasure: mirror")] public bool SpeedRunPickupMirror = false;
     [SettingsName("SR treasure: time orb")] public bool SpeedRunPickupTimeOrb = false;
-    [SettingsName("SR treasure: dark orb")] public bool SpeedRunPickupDarkOrb = false;
+    [SettingsName("SR treasure: dark orb")] public bool SpeedRunPickupDarkOrb = true;
     [SettingsName("SR treasure: lava orb")] public bool SpeedRunPickupLavaOrb = false;
     [SettingsName("SR treasure: space orb")] public bool SpeedRunPickupSpaceOrb = false;
     [SettingsName("SR treasure: chaos orb")] public bool SpeedRunPickupChaosOrb = false;
-    [SettingsName("SR treasure: bomb")] public bool SpeedRunPickupBomb = false;
-    [SettingsName("SR treasure: gem")] public bool SpeedRunPickupGem = false;
+    [SettingsName("SR treasure: bomb")] public bool SpeedRunPickupBomb = true;
 
     // Liste des pickups actives pour le contenu des coffres.
     public List<Pickups> GetEnabledTreasurePickups()
@@ -140,21 +139,21 @@ namespace TFModFortRiseSpeedRun
       if (SpeedRunPickupSpaceOrb) list.Add(Pickups.SpaceOrb);
       if (SpeedRunPickupChaosOrb) list.Add(Pickups.ChaosOrb);
       if (SpeedRunPickupBomb) list.Add(Pickups.Bomb);
-      if (SpeedRunPickupGem) list.Add(Pickups.Gem);
+      //if (SpeedRunPickupGem) list.Add(Pickups.Gem);
       return list;
     }
 
     // Tous les joueurs apparaissent au meme endroit (gauche), facon course.
     [SettingsName("Speed Run same spawn (race)")]
-    public bool SpeedRunSameSpawn = false;
+    public bool SpeedRunSameSpawn = true;
 
     // Desactive le tir de fleches (donc pas de kill a distance).
     [SettingsName("Speed Run disable arrows")]
-    public bool SpeedRunNoArrows = false;
+    public bool SpeedRunNoArrows = true;
 
     // Empeche de tuer en sautant sur la tete (stomp).
     [SettingsName("Speed Run disable head stomp")]
-    public bool SpeedRunNoStomp = false;
+    public bool SpeedRunNoStomp = true;
 
     // Intro : vue d'ensemble dezoomee du niveau puis zoom vers le depart.
     [SettingsName("Speed Run intro zoom")]
@@ -163,6 +162,6 @@ namespace TFModFortRiseSpeedRun
     // Fenetre visible elargie (420x240 au lieu de 320x240) pendant les rounds
     // Speed Run : supprime les bandes noires laterales.
     [SettingsName("Speed Run wide screen")]
-    public bool SpeedRunWideScreen = false;
+    public bool SpeedRunWideScreen = true;
   }
 }
