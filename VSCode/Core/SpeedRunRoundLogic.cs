@@ -43,7 +43,7 @@ namespace TFModFortRiseSpeedRun
     public override void OnRoundStart()
     {
       base.OnRoundStart();
-      base.SpawnTreasureChestsVersus();
+      SpawnSpeedRunTreasures();
       this.scrollInit = false;
       this.offscreenTimer = new float[TFGame.Players.Length];
       this.playerDetached = new bool[TFGame.Players.Length];
@@ -55,6 +55,9 @@ namespace TFModFortRiseSpeedRun
       base.OnUpdate();
 
       UpdateScroll();
+
+      if (base.RoundStarted && !goalReached && base.Session.CurrentLevel != null)
+        UpdateTreasureRespawn(base.Session.CurrentLevel);
 
       if (base.RoundStarted && !this.done && base.Session.CurrentLevel.Ending && base.Session.CurrentLevel.CanEnd)
       {
@@ -595,6 +598,113 @@ namespace TFModFortRiseSpeedRun
 
       base.AddScore(winnerIndex, 1);
       level.Ending = true;
+    }
+
+    // ------------------------------------------------------------------
+    // Coffres : spawner custom (remplace SpawnTreasureChestsVersus).
+    //   - Positions : emplacements TreasureChest/BigTreasureChest des XML des
+    //     levels sources (recopies avec offset par SpeedRunLevelSystem).
+    //   - Nombre : SpeedRunTreasureCount (0 = aucun).
+    //   - Contenu : pioche au hasard parmi les pickups activees dans les
+    //     settings du mod (GetEnabledTreasurePickups).
+    //   - Respawn : un coffre ouvert reapparait au meme endroit apres
+    //     SpeedRunTreasureRespawn secondes (0 = off), avec un nouveau contenu.
+    // ------------------------------------------------------------------
+    private class TreasureSlot
+    {
+      public Vector2 Position;
+      public TreasureChest Chest;    // coffre actif (null pendant le compte a rebours)
+      public TreasureChest OldChest; // coffre ouvert encore visible, retire au respawn
+      public bool Seen;              // Chest a ete vu dans la scene (ajout differe)
+      public float RespawnTimer;     // frames restantes avant respawn
+    }
+
+    private List<TreasureSlot> treasureSlots;
+    private List<Pickups> treasurePool;
+
+    private void SpawnSpeedRunTreasures()
+    {
+      treasureSlots = new List<TreasureSlot>();
+      Level level = base.Session.CurrentLevel;
+      if (level == null || !level.CanSpawnTreasure || base.Session.MatchSettings.Variants.NoTreasure)
+        return;
+      int count = TFModFortRiseSpeedRunModule.Settings.SpeedRunTreasureCount;
+      if (count <= 0)
+        return;
+      treasurePool = BuildTreasurePool();
+      if (treasurePool.Count == 0)
+        return;
+
+      List<Vector2> positions = level.GetXMLPositions("TreasureChest");
+      positions.AddRange(level.GetXMLPositions("BigTreasureChest"));
+      positions.Shuffle();
+
+      for (int i = 0; i < positions.Count && treasureSlots.Count < count; i++)
+      {
+        TreasureSlot slot = new TreasureSlot { Position = positions[i] };
+        slot.Chest = MakeTreasureChest(slot.Position, Calc.Random.Range(10, 90));
+        level.Add<TreasureChest>(slot.Chest);
+        treasureSlots.Add(slot);
+      }
+    }
+
+    // Pickups activees dans les settings ; sans le DLC Dark World, ses pickups
+    // sont retirees (meme regle que le TreasureSpawner vanilla).
+    private static List<Pickups> BuildTreasurePool()
+    {
+      List<Pickups> pool = TFModFortRiseSpeedRunModule.Settings.GetEnabledTreasurePickups();
+      if (!GameData.DarkWorldDLC)
+        pool.RemoveAll(p => (int)p < TreasureSpawner.DarkWorldTreasures.Length
+                         && TreasureSpawner.DarkWorldTreasures[(int)p]);
+      return pool;
+    }
+
+    private TreasureChest MakeTreasureChest(Vector2 position, int appearDelay)
+    {
+      Pickups pickup = treasurePool[Calc.Random.Next(treasurePool.Count)];
+      return new TreasureChest(position, TreasureChest.Types.Normal, TreasureChest.AppearModes.Time, pickup, appearDelay);
+    }
+
+    private void UpdateTreasureRespawn(Level level)
+    {
+      if (treasureSlots == null || treasurePool == null || treasurePool.Count == 0)
+        return;
+      int respawnSec = TFModFortRiseSpeedRunModule.Settings.SpeedRunTreasureRespawn;
+      if (respawnSec <= 0)
+        return;
+
+      foreach (TreasureSlot slot in treasureSlots)
+      {
+        if (slot.Chest != null)
+        {
+          // L'ajout d'entite est differe : ne considerer le coffre "disparu"
+          // qu'apres l'avoir vu au moins une fois dans la scene.
+          if (slot.Chest.Scene != null)
+            slot.Seen = true;
+          bool gone = slot.Seen && slot.Chest.Scene == null;
+          if (gone || slot.Chest.State == TreasureChest.States.Opened)
+          {
+            slot.OldChest = gone ? null : slot.Chest;
+            slot.Chest = null;
+            slot.Seen = false;
+            slot.RespawnTimer = respawnSec * 60f;
+          }
+        }
+        else
+        {
+          slot.RespawnTimer -= Engine.TimeMult;
+          if (slot.RespawnTimer <= 0f)
+          {
+            // Retire le coffre ouvert encore au sol, puis en fait apparaitre
+            // un nouveau (avec l'animation d'apparition).
+            if (slot.OldChest != null && slot.OldChest.Scene != null)
+              slot.OldChest.RemoveSelf();
+            slot.OldChest = null;
+            slot.Chest = MakeTreasureChest(slot.Position, 1);
+            level.Add<TreasureChest>(slot.Chest);
+          }
+        }
+      }
     }
 
     // Murs solides invisibles suivant la fenetre camera : gauche, droite et bas

@@ -1,13 +1,4 @@
-﻿//no goal 
-// can't push Y again when quit ok
-//ligne vertical noire sur widescreen ON : ok
-//desactiver le sbouton pour arriere plan dans la popup Y ok
-//quand on tombe on est retenue dans le "vide"  ok
-// il faudrait qu on puisse rebondir sur le bord de l ecran comme sur un mur ok
-// accelerer au fur et a mesure 
-// mettre un goal au bout -> meme chose que lorsque en coop a la fin d un niveau une sorte de trou noir apparait et on saute dedans
-// metre des coffre tout le long avec des options faite pour comme bouclier/boot/bombe/ 
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -43,14 +34,12 @@ namespace TFModFortRiseSpeedRun
 
     public override void Load()
     {
-
       SpeedRunRenderPatches.Load();
       SpeedRunWrapPatches.Load();
       MySpeedRunPlayer.Load();
       MySpeedRunModeButton.Load();
       SpeedRunWideScreen.Load();
       typeof(EigthPlayerImport).ModInterop();
-
     }
 
     // Appele une fois TOUS les mods charges (RiseCore.ModsAfterLoad). C'est le seul
@@ -99,7 +88,6 @@ namespace TFModFortRiseSpeedRun
 
     public override void Unload()
     {
-      //if (EigthPlayerImport.IsEightPlayer == null)
       SpeedRunRenderPatches.Unload();
       SpeedRunWrapPatches.Unload();
       MySpeedRunPlayer.Unload();

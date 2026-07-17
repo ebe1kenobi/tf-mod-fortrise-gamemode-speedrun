@@ -93,6 +93,15 @@ namespace TFModFortRiseSpeedRun
       laps.Visible = () => s.SpeedRunGoalPortal && s.SpeedRunShape == TFModFortRiseSpeedRunSettings.ShapeSquare && scrollMode();
       fields.Add(laps);
 
+      // Coffres : nombre + respawn. Le contenu (types de pickup) se regle dans
+      // les settings du mod FortRise.
+      fields.Add(IntField("TREASURES", () => s.SpeedRunTreasureCount, v => s.SpeedRunTreasureCount = v, 0, 20));
+
+      Field tRespawn = IntField("CHEST RESPAWN (s)", () => s.SpeedRunTreasureRespawn, v => s.SpeedRunTreasureRespawn = v, 0, 60);
+      tRespawn.Value = () => s.SpeedRunTreasureRespawn == 0 ? "OFF" : s.SpeedRunTreasureRespawn.ToString();
+      tRespawn.Visible = () => s.SpeedRunTreasureCount > 0;
+      fields.Add(tRespawn);
+
       Field leaveBehind = BoolField("LEAVE BEHIND", () => s.SpeedRunLeaveBehind, v => s.SpeedRunLeaveBehind = v);
       leaveBehind.Visible = scrollMode;
       fields.Add(leaveBehind);
@@ -212,13 +221,13 @@ namespace TFModFortRiseSpeedRun
     public override void Render()
     {
       Draw.Rect(0f, 0f, 320f, 240f, Color.Black * 0.8f);
-      Draw.OutlineTextCentered(TFGame.Font, "SPEED RUN", Position + new Vector2(0f, -86f), Color.White, 2f);
-      Draw.TextCentered(TFGame.Font, "UP/DOWN: CHAMP  LEFT/RIGHT: AJUSTER  CONFIRM: FERMER", Position + new Vector2(0f, -72f), Color.Gray);
+      Draw.OutlineTextCentered(TFGame.Font, "SPEED RUN", Position + new Vector2(0f, -92f), Color.White, 2f);
+      Draw.TextCentered(TFGame.Font, "UP/DOWN: CHAMP  LEFT/RIGHT: AJUSTER  CONFIRM: FERMER", Position + new Vector2(0f, -80f), Color.Gray);
 
-      // Espacement 12px et depart un peu plus haut : jusqu'a 13 lignes visibles
-      // sans deborder sur le pied de page.
+      // Espacement 11px et depart remonte : jusqu'a 17 lignes visibles dans
+      // l'ecran 240px.
       List<Field> vis = VisibleFields();
-      float rowY = Position.Y - 62f;
+      float rowY = Position.Y - 68f;
       for (int i = 0; i < vis.Count; i++)
       {
         bool sel = i == selected;
@@ -227,7 +236,7 @@ namespace TFModFortRiseSpeedRun
         string prefix = sel ? "> " : "  ";
         Draw.Text(TFGame.Font, prefix + vis[i].Label, new Vector2(Position.X - 100f, rowY), labelColor);
         Draw.Text(TFGame.Font, vis[i].Value(), new Vector2(Position.X + 50f, rowY), valueColor);
-        rowY += 12f;
+        rowY += 11f;
       }
     }
   }
