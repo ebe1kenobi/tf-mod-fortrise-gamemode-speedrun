@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using FortRise;
 using TowerFall;
 
@@ -6,114 +6,118 @@ namespace TFModFortRiseSpeedRun
 {
   public class TFModFortRiseSpeedRunSettings : ModuleSettings
   {
-    // Vitesse de defilement du mode Speed Run, en dixiemes de pixel par frame
-    // (ex: 3 => 0.3 px/frame ≈ 18 px/s a 60 fps). Valeur volontairement lente
-    // au depart pour laisser le temps aux joueurs de suivre.
-    [SettingsName("Speed Run speed (tenths of px/frame)")]
-    [SettingsNumber(1, 30)]
-    public int SpeedRunSpeed = 10;
+    // Options du mode "shape" et "camera" (etaient des [SettingsOptions] en FR4).
+    // NB : SpeedRunCamera garde ses constantes historiques (AutoScroll=0,
+    // FollowPlayers=2) ; comme en FR4, l'index de l'option selectionnee (0/1) est
+    // stocke tel quel, la vraie UI de reglage etant la popup en jeu (UISpeedRunPopup).
+    private static readonly string[] ShapeNames = ["Horizontal", "Square"];
+    private static readonly string[] CameraNames = ["Auto scroll", "Follow players"];
 
-    // Acceleration progressive du scroll : toutes les SpeedRunAccelEvery
-    // secondes, la vitesse augmente de SpeedRunAccelAmount (dixiemes de
-    // px/frame). 0 = desactive. S'applique a l'auto scroll et au follow leader
-    // (ou SpeedRunSpeed est la vitesse plancher). La vitesse effective est
-    // plafonnee a 6 px/frame (meme plafond que le suivi leader).
-    [SettingsName("Speed Run acceleration (+tenths px/frame)")]
-    [SettingsNumber(0, 20)]
-    public int SpeedRunAccelAmount = 1;
+    private static string OptionName(string[] names, int index)
+    {
+      if (index < 0 || index >= names.Length)
+        return names[0];
+      return names[index];
+    }
 
-    [SettingsName("Speed Run acceleration every (s)")]
-    [SettingsNumber(1, 60)]
-    public int SpeedRunAccelEvery = 10;
+    public override void Create(ISettingsCreate settings)
+    {
+      settings.CreateNumber("Speed Run speed (tenths of px/frame)", SpeedRunSpeed, (x) => SpeedRunSpeed = x, 1, 30);
+      settings.CreateNumber("Speed Run acceleration (+tenths px/frame)", SpeedRunAccelAmount, (x) => SpeedRunAccelAmount = x, 0, 20);
+      settings.CreateNumber("Speed Run acceleration every (s)", SpeedRunAccelEvery, (x) => SpeedRunAccelEvery = x, 1, 60);
+      settings.CreateOptions("Speed Run shape", OptionName(ShapeNames, SpeedRunShape), ShapeNames, (x) => SpeedRunShape = x.Item2);
+      settings.CreateOnOff("Speed Run goal portal", SpeedRunGoalPortal, (x) => SpeedRunGoalPortal = x);
+      settings.CreateNumber("Speed Run laps before goal (square)", SpeedRunLaps, (x) => SpeedRunLaps = x, 1, 10);
+      settings.CreateNumber("Speed Run number of levels", SpeedRunMaxLevels, (x) => SpeedRunMaxLevels = x, 2, 30);
+      settings.CreateOptions("Speed Run camera", OptionName(CameraNames, SpeedRunCamera), CameraNames, (x) => SpeedRunCamera = x.Item2);
+      settings.CreateOnOff("Speed Run leave players behind", SpeedRunLeaveBehind, (x) => SpeedRunLeaveBehind = x);
+      settings.CreateNumber("Speed Run offscreen death delay (s)", SpeedRunOffscreenDeathDelay, (x) => SpeedRunOffscreenDeathDelay = x, 1, 15);
+      settings.CreateNumber("Speed Run treasure count", SpeedRunTreasureCount, (x) => SpeedRunTreasureCount = x, 0, 20);
+      settings.CreateNumber("Speed Run treasure respawn (s)", SpeedRunTreasureRespawn, (x) => SpeedRunTreasureRespawn = x, 0, 60);
 
-    // Forme du parcours : bande horizontale (scroll droite uniquement) ou anneau
-    // carre (droite -> bas -> gauche -> haut, en boucle).
+      settings.CreateOnOff("SR treasure: arrows", SpeedRunPickupArrows, (x) => SpeedRunPickupArrows = x);
+      settings.CreateOnOff("SR treasure: bomb arrows", SpeedRunPickupBombArrows, (x) => SpeedRunPickupBombArrows = x);
+      settings.CreateOnOff("SR treasure: super bomb arrows", SpeedRunPickupSuperBombArrows, (x) => SpeedRunPickupSuperBombArrows = x);
+      settings.CreateOnOff("SR treasure: laser arrows", SpeedRunPickupLaserArrows, (x) => SpeedRunPickupLaserArrows = x);
+      settings.CreateOnOff("SR treasure: bramble arrows", SpeedRunPickupBrambleArrows, (x) => SpeedRunPickupBrambleArrows = x);
+      settings.CreateOnOff("SR treasure: drill arrows", SpeedRunPickupDrillArrows, (x) => SpeedRunPickupDrillArrows = x);
+      settings.CreateOnOff("SR treasure: bolt arrows", SpeedRunPickupBoltArrows, (x) => SpeedRunPickupBoltArrows = x);
+      settings.CreateOnOff("SR treasure: feather arrows", SpeedRunPickupFeatherArrows, (x) => SpeedRunPickupFeatherArrows = x);
+      settings.CreateOnOff("SR treasure: trigger arrows", SpeedRunPickupTriggerArrows, (x) => SpeedRunPickupTriggerArrows = x);
+      settings.CreateOnOff("SR treasure: prism arrows", SpeedRunPickupPrismArrows, (x) => SpeedRunPickupPrismArrows = x);
+      settings.CreateOnOff("SR treasure: shield", SpeedRunPickupShield, (x) => SpeedRunPickupShield = x);
+      settings.CreateOnOff("SR treasure: wings", SpeedRunPickupWings, (x) => SpeedRunPickupWings = x);
+      settings.CreateOnOff("SR treasure: speed boots", SpeedRunPickupSpeedBoots, (x) => SpeedRunPickupSpeedBoots = x);
+      settings.CreateOnOff("SR treasure: mirror", SpeedRunPickupMirror, (x) => SpeedRunPickupMirror = x);
+      settings.CreateOnOff("SR treasure: time orb", SpeedRunPickupTimeOrb, (x) => SpeedRunPickupTimeOrb = x);
+      settings.CreateOnOff("SR treasure: dark orb", SpeedRunPickupDarkOrb, (x) => SpeedRunPickupDarkOrb = x);
+      settings.CreateOnOff("SR treasure: lava orb", SpeedRunPickupLavaOrb, (x) => SpeedRunPickupLavaOrb = x);
+      settings.CreateOnOff("SR treasure: space orb", SpeedRunPickupSpaceOrb, (x) => SpeedRunPickupSpaceOrb = x);
+      settings.CreateOnOff("SR treasure: chaos orb", SpeedRunPickupChaosOrb, (x) => SpeedRunPickupChaosOrb = x);
+      settings.CreateOnOff("SR treasure: bomb", SpeedRunPickupBomb, (x) => SpeedRunPickupBomb = x);
+
+      settings.CreateOnOff("Speed Run same spawn (race)", SpeedRunSameSpawn, (x) => SpeedRunSameSpawn = x);
+      settings.CreateOnOff("Speed Run disable arrows", SpeedRunNoArrows, (x) => SpeedRunNoArrows = x);
+      settings.CreateOnOff("Speed Run disable head stomp", SpeedRunNoStomp, (x) => SpeedRunNoStomp = x);
+      settings.CreateOnOff("Speed Run intro zoom", SpeedRunIntroZoom, (x) => SpeedRunIntroZoom = x);
+      settings.CreateOnOff("Speed Run wide screen", SpeedRunWideScreen, (x) => SpeedRunWideScreen = x);
+    }
+
+    // Vitesse de defilement du mode Speed Run, en dixiemes de pixel par frame.
+    public int SpeedRunSpeed { get; set; } = 10;
+
+    // Acceleration progressive du scroll (dixiemes de px/frame). 0 = desactive.
+    public int SpeedRunAccelAmount { get; set; } = 1;
+    public int SpeedRunAccelEvery { get; set; } = 10;
+
+    // Forme du parcours : bande horizontale ou anneau carre.
     public const int ShapeHorizontal = 0;
     public const int ShapeSquare = 1;
-    [SettingsName("Speed Run shape")]
-    [SettingsOptions("Horizontal", "Square")]
-    public int SpeedRunShape = ShapeSquare;
+    public int SpeedRunShape { get; set; } = ShapeSquare;
 
-    // Portail d'arrivee ("trou noir" facon fin de niveau coop) : le premier
-    // joueur qui saute dedans gagne le round, les autres meurent. En HORIZONTAL
-    // il apparait au bout du parcours ; en SQUARE au bout de SpeedRunLaps tours
-    // (modes scroll uniquement — pas de notion de tour en follow players).
-    [SettingsName("Speed Run goal portal")]
-    public bool SpeedRunGoalPortal = true;
+    // Portail d'arrivee ("trou noir" facon fin de niveau coop).
+    public bool SpeedRunGoalPortal { get; set; } = true;
+    public int SpeedRunLaps { get; set; } = 3;
 
-    [SettingsName("Speed Run laps before goal (square)")]
-    [SettingsNumber(1, 10)]
-    public int SpeedRunLaps = 3;
+    // Nombre max de levels du monde a coller bout a bout.
+    public int SpeedRunMaxLevels { get; set; } = 10;
 
-    // Nombre max de levels du monde a coller bout a bout. Si le monde en a moins,
-    // on utilise ce qui est disponible.
-    [SettingsName("Speed Run number of levels")]
-    [SettingsNumber(2, 30)]
-    public int SpeedRunMaxLevels = 10;
-
-    // Mode camera (3 modes mutuellement exclusifs) :
-    //   - AutoScroll    : scroll a vitesse fixe (SpeedRunSpeed).
-    //   - FollowLeader  : scroll pilote par le joueur le plus avance
-    //                     (SpeedRunSpeed = vitesse plancher).
-    //   - FollowPlayers : plus de scroll automatique du tout. La camera suit les
-    //     mouvements du groupe (elle vise le centre de leur boite englobante) :
-    //     si tout le monde va a droite, l'ecran se decale a droite, etc. Si les
-    //     joueurs sont ecartes de la taille de l'ecran, la camera ne bouge plus
-    //     et des murs invisibles aux bords empechent de sortir de l'ecran.
-    //     SpeedRunSpeed / SpeedRunLeaveBehind / SpeedRunOffscreenDeathDelay sont
-    //     alors sans effet.
+    // Mode camera. NB : FollowPlayers=2 est conserve pour compatibilite meme si
+    // l'index d'option stocke ne l'atteint pas (comportement identique a FortRise 4).
     public const int CameraAutoScroll = 0;
     //public const int CameraFollowLeader = 1;
     public const int CameraFollowPlayers = 2;
-    [SettingsName("Speed Run camera")]
-    [SettingsOptions("Auto scroll",  "Follow players")] ///"Follow leader",
-    public int SpeedRunCamera = CameraAutoScroll;
+    public int SpeedRunCamera { get; set; } = CameraAutoScroll;
 
-    // Option 2 : ne plus bloquer le bord arriere -> les retardataires sortent de
-    // l'ecran (au lieu d'etre pousses/ecrases) et meurent apres N secondes hors-ecran.
-    [SettingsName("Speed Run leave players behind")]
-    public bool SpeedRunLeaveBehind = false;
+    // Option 2 : les retardataires sortent de l'ecran et meurent apres N secondes.
+    public bool SpeedRunLeaveBehind { get; set; } = false;
+    public int SpeedRunOffscreenDeathDelay { get; set; } = 3;
 
-    // Delai (secondes) avant qu'un joueur hors-ecran ne meure (option 2).
-    [SettingsName("Speed Run offscreen death delay (s)")]
-    [SettingsNumber(1, 15)]
-    public int SpeedRunOffscreenDeathDelay = 3;
-
-    // Coffres : spawner custom qui remplace le spawner vanilla. Les positions
-    // respectent les emplacements TreasureChest/BigTreasureChest definis dans
-    // les XML des levels sources (Content/Levels/Versus), le contenu est pioche
-    // au hasard parmi les pickups actives ci-dessous.
-    [SettingsName("Speed Run treasure count")]
-    [SettingsNumber(0, 20)]
-    public int SpeedRunTreasureCount = 5;
-
-    // Respawn d'un coffre N secondes apres son ouverture (0 = pas de respawn).
-    // Surtout utile en SQUARE ou l'on repasse au meme endroit a chaque tour.
-    [SettingsName("Speed Run treasure respawn (s)")]
-    [SettingsNumber(0, 60)]
-    public int SpeedRunTreasureRespawn = 20;
+    // Coffres : spawner custom qui remplace le spawner vanilla.
+    public int SpeedRunTreasureCount { get; set; } = 5;
+    public int SpeedRunTreasureRespawn { get; set; } = 20;
 
     // Contenu possible des coffres : un on/off par type de pickup du jeu.
-    [SettingsName("SR treasure: arrows")] public bool SpeedRunPickupArrows = false;
-    [SettingsName("SR treasure: bomb arrows")] public bool SpeedRunPickupBombArrows = false;
-    [SettingsName("SR treasure: super bomb arrows")] public bool SpeedRunPickupSuperBombArrows = false;
-    [SettingsName("SR treasure: laser arrows")] public bool SpeedRunPickupLaserArrows = false;
-    [SettingsName("SR treasure: bramble arrows")] public bool SpeedRunPickupBrambleArrows = false;
-    [SettingsName("SR treasure: drill arrows")] public bool SpeedRunPickupDrillArrows = false;
-    [SettingsName("SR treasure: bolt arrows")] public bool SpeedRunPickupBoltArrows = false;
-    [SettingsName("SR treasure: feather arrows")] public bool SpeedRunPickupFeatherArrows = false;
-    [SettingsName("SR treasure: trigger arrows")] public bool SpeedRunPickupTriggerArrows = false;
-    [SettingsName("SR treasure: prism arrows")] public bool SpeedRunPickupPrismArrows = true;
-    [SettingsName("SR treasure: shield")] public bool SpeedRunPickupShield = false;
-    [SettingsName("SR treasure: wings")] public bool SpeedRunPickupWings = true;
-    [SettingsName("SR treasure: speed boots")] public bool SpeedRunPickupSpeedBoots = true;
-    [SettingsName("SR treasure: mirror")] public bool SpeedRunPickupMirror = false;
-    [SettingsName("SR treasure: time orb")] public bool SpeedRunPickupTimeOrb = false;
-    [SettingsName("SR treasure: dark orb")] public bool SpeedRunPickupDarkOrb = true;
-    [SettingsName("SR treasure: lava orb")] public bool SpeedRunPickupLavaOrb = false;
-    [SettingsName("SR treasure: space orb")] public bool SpeedRunPickupSpaceOrb = false;
-    [SettingsName("SR treasure: chaos orb")] public bool SpeedRunPickupChaosOrb = false;
-    [SettingsName("SR treasure: bomb")] public bool SpeedRunPickupBomb = true;
+    public bool SpeedRunPickupArrows { get; set; } = false;
+    public bool SpeedRunPickupBombArrows { get; set; } = false;
+    public bool SpeedRunPickupSuperBombArrows { get; set; } = false;
+    public bool SpeedRunPickupLaserArrows { get; set; } = false;
+    public bool SpeedRunPickupBrambleArrows { get; set; } = false;
+    public bool SpeedRunPickupDrillArrows { get; set; } = false;
+    public bool SpeedRunPickupBoltArrows { get; set; } = false;
+    public bool SpeedRunPickupFeatherArrows { get; set; } = false;
+    public bool SpeedRunPickupTriggerArrows { get; set; } = false;
+    public bool SpeedRunPickupPrismArrows { get; set; } = true;
+    public bool SpeedRunPickupShield { get; set; } = false;
+    public bool SpeedRunPickupWings { get; set; } = true;
+    public bool SpeedRunPickupSpeedBoots { get; set; } = true;
+    public bool SpeedRunPickupMirror { get; set; } = false;
+    public bool SpeedRunPickupTimeOrb { get; set; } = false;
+    public bool SpeedRunPickupDarkOrb { get; set; } = true;
+    public bool SpeedRunPickupLavaOrb { get; set; } = false;
+    public bool SpeedRunPickupSpaceOrb { get; set; } = false;
+    public bool SpeedRunPickupChaosOrb { get; set; } = false;
+    public bool SpeedRunPickupBomb { get; set; } = true;
 
     // Liste des pickups actives pour le contenu des coffres.
     public List<Pickups> GetEnabledTreasurePickups()
@@ -144,24 +148,18 @@ namespace TFModFortRiseSpeedRun
     }
 
     // Tous les joueurs apparaissent au meme endroit (gauche), facon course.
-    [SettingsName("Speed Run same spawn (race)")]
-    public bool SpeedRunSameSpawn = true;
+    public bool SpeedRunSameSpawn { get; set; } = true;
 
     // Desactive le tir de fleches (donc pas de kill a distance).
-    [SettingsName("Speed Run disable arrows")]
-    public bool SpeedRunNoArrows = true;
+    public bool SpeedRunNoArrows { get; set; } = true;
 
     // Empeche de tuer en sautant sur la tete (stomp).
-    [SettingsName("Speed Run disable head stomp")]
-    public bool SpeedRunNoStomp = true;
+    public bool SpeedRunNoStomp { get; set; } = true;
 
     // Intro : vue d'ensemble dezoomee du niveau puis zoom vers le depart.
-    [SettingsName("Speed Run intro zoom")]
-    public bool SpeedRunIntroZoom = true;
+    public bool SpeedRunIntroZoom { get; set; } = true;
 
-    // Fenetre visible elargie (420x240 au lieu de 320x240) pendant les rounds
-    // Speed Run : supprime les bandes noires laterales.
-    [SettingsName("Speed Run wide screen")]
-    public bool SpeedRunWideScreen = true;
+    // Fenetre visible elargie (420x240) pendant les rounds Speed Run.
+    public bool SpeedRunWideScreen { get; set; } = true;
   }
 }

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using FortRise;
+using HarmonyLib;
 using Microsoft.Xna.Framework;
 using TowerFall;
 
@@ -10,91 +12,95 @@ namespace TFModFortRiseSpeedRun
   // + interieur de l'anneau rempli) : aucun wrap n'est necessaire. Mais le wrap
   // vanilla est cable en dur a 320/240 en coordonnees ABSOLUES (teleportation de
   // position, hitbox fantomes, tests de collision modulo, rendus fantomes,
-  // lumieres fantomes) et se declencherait a tort partout au-dela du premier
-  // ecran. Historique important : une version precedente wrappait sur l'axe
-  // perpendiculaire au scroll RELATIF a la fenetre camera — mauvaise idee, car la
-  // teleportation ramenait dans la fenetre TOUTES les entites laissees derriere
-  // (torches des autres blocs empilees dans la colonne visible, joueurs
-  // abandonnes ramenes a l'ecran au lieu de mourir hors-champ).
-  internal static class SpeedRunWrapPatches
+  // lumieres fantomes) et se declencherait a tort partout au-dela du premier ecran.
+  public class SpeedRunWrapPatches : IHookable
   {
-    internal static void Load()
+    public static void Load(IHarmony harmony)
     {
-      On.TowerFall.LevelEntity.EnforceScreenWrap += EnforceScreenWrap_patch;
-      On.TowerFall.WrapHitbox.BuildHitList += BuildHitList_patch;
-      On.TowerFall.WrapMath.ApplyWrapX += ApplyWrapX_patch;
-      On.TowerFall.WrapMath.ApplyWrapY += ApplyWrapY_patch;
-      On.TowerFall.LevelEntity.Render += Render_patch;
-      On.TowerFall.LevelEntity.DrawLight += DrawLight_patch;
-    }
-
-    internal static void Unload()
-    {
-      On.TowerFall.LevelEntity.EnforceScreenWrap -= EnforceScreenWrap_patch;
-      On.TowerFall.WrapHitbox.BuildHitList -= BuildHitList_patch;
-      On.TowerFall.WrapMath.ApplyWrapX -= ApplyWrapX_patch;
-      On.TowerFall.WrapMath.ApplyWrapY -= ApplyWrapY_patch;
-      On.TowerFall.LevelEntity.Render -= Render_patch;
-      On.TowerFall.LevelEntity.DrawLight -= DrawLight_patch;
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(LevelEntity), "EnforceScreenWrap"),
+          prefix: new HarmonyMethod(EnforceScreenWrap_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(WrapHitbox), "BuildHitList"),
+          prefix: new HarmonyMethod(BuildHitList_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(WrapMath), nameof(WrapMath.ApplyWrapX)),
+          prefix: new HarmonyMethod(ApplyWrapX_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(WrapMath), nameof(WrapMath.ApplyWrapY)),
+          prefix: new HarmonyMethod(ApplyWrapY_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(LevelEntity), nameof(LevelEntity.Render)),
+          prefix: new HarmonyMethod(Render_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(LevelEntity), nameof(LevelEntity.DrawLight)),
+          prefix: new HarmonyMethod(DrawLight_patch)
+      );
     }
 
     // Position : aucune teleportation aux frontieres 320/240.
-    private static void EnforceScreenWrap_patch(On.TowerFall.LevelEntity.orig_EnforceScreenWrap orig, LevelEntity self)
+    private static bool EnforceScreenWrap_patch()
     {
-      if (SpeedRunRenderPatches.IsSpeedRunActive())
-        return;
-      orig(self);
+      return !SpeedRunRenderPatches.IsSpeedRunActive();
     }
 
     // Collision : une seule hitbox reelle, pas de fantomes a +/-320/240.
-    private static void BuildHitList_patch(On.TowerFall.WrapHitbox.orig_BuildHitList orig, WrapHitbox self, List<Rectangle> hitList)
+    private static bool BuildHitList_patch(WrapHitbox __instance, List<Rectangle> hitList)
     {
       if (!SpeedRunRenderPatches.IsSpeedRunActive())
-      {
-        orig(self, hitList);
-        return;
-      }
+        return true;
+
       hitList.Clear();
-      hitList.Add(self.Bounds);
+      hitList.Add(__instance.Bounds);
+      return false;
     }
 
     // Tests de collision via WrapMath.Vec : coordonnees inchangees (le modulo 320
     // ferait tester la collision dans le mauvais bloc).
-    private static float ApplyWrapX_patch(On.TowerFall.WrapMath.orig_ApplyWrapX orig, float x)
+    private static bool ApplyWrapX_patch(float x, ref float __result)
     {
       if (SpeedRunRenderPatches.IsSpeedRunActive())
-        return x;
-      return orig(x);
+      {
+        __result = x;
+        return false;
+      }
+      return true;
     }
 
-    private static float ApplyWrapY_patch(On.TowerFall.WrapMath.orig_ApplyWrapY orig, float y)
+    private static bool ApplyWrapY_patch(float y, ref float __result)
     {
       if (SpeedRunRenderPatches.IsSpeedRunActive())
-        return y;
-      return orig(y);
+      {
+        __result = y;
+        return false;
+      }
+      return true;
     }
 
     // Rendu : une seule copie, pas de rendus fantomes decales de +/-320/240.
-    private static void Render_patch(On.TowerFall.LevelEntity.orig_Render orig, LevelEntity self)
+    private static bool Render_patch(LevelEntity __instance)
     {
       if (!SpeedRunRenderPatches.IsSpeedRunActive())
-      {
-        orig(self);
-        return;
-      }
-      self.DoWrapRender();
+        return true;
+
+      __instance.DoWrapRender();
+      return false;
     }
 
     // Lumieres : une seule lumiere, pas de copies fantomes (le DrawLight vanilla
     // ajoute des halos a +/-320/240 en dur quand ScreenWrap est actif).
-    private static void DrawLight_patch(On.TowerFall.LevelEntity.orig_DrawLight orig, LevelEntity self, LightingLayer layer)
+    private static bool DrawLight_patch(LevelEntity __instance, LightingLayer layer)
     {
       if (!SpeedRunRenderPatches.IsSpeedRunActive())
-      {
-        orig(self, layer);
-        return;
-      }
-      layer.DrawLight(self.Position, self.LightRadius, layer.Sine, self.LightColor * self.LightAlpha);
+        return true;
+
+      layer.DrawLight(__instance.Position, __instance.LightRadius, layer.Sine, __instance.LightColor * __instance.LightAlpha);
+      return false;
     }
   }
 }

@@ -1,3 +1,5 @@
+using FortRise;
+using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Monocle;
 using TowerFall;
@@ -8,48 +10,57 @@ namespace TFModFortRiseSpeedRun
   //  - meme spawn (course) : tous les joueurs apparaissent au point le plus a gauche.
   //  - pas de fleches : ShootLock force pendant l'update (aucun tir).
   //  - pas de stomp : HurtBouncedOn ignore (sauter sur la tete ne tue pas).
-  internal static class MySpeedRunPlayer
+  public class MySpeedRunPlayer : IHookable
   {
-    internal static void Load()
+    // Etat transmis entre prefix et postfix de Update (pour restaurer ShootLock).
+    private struct UpdateState
     {
-      On.TowerFall.Player.Added += Added_patch;
-      On.TowerFall.Player.Update += Update_patch;
-      On.TowerFall.Player.HurtBouncedOn += HurtBouncedOn_patch;
-      On.TowerFall.Player.HUDRender += HUDRender_patch;
+      public bool Active;
+      public bool PreviousShootLock;
     }
 
-    internal static void Unload()
+    public static void Load(IHarmony harmony)
     {
-      On.TowerFall.Player.Added -= Added_patch;
-      On.TowerFall.Player.Update -= Update_patch;
-      On.TowerFall.Player.HurtBouncedOn -= HurtBouncedOn_patch;
-      On.TowerFall.Player.HUDRender -= HUDRender_patch;
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(Player), nameof(Player.Added)),
+          postfix: new HarmonyMethod(Added_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(Player), nameof(Player.Update)),
+          prefix: new HarmonyMethod(Update_prefix_patch),
+          postfix: new HarmonyMethod(Update_postfix_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(Player), nameof(Player.HurtBouncedOn)),
+          prefix: new HarmonyMethod(HurtBouncedOn_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(Player), nameof(Player.HUDRender)),
+          prefix: new HarmonyMethod(HUDRender_patch)
+      );
     }
 
     // Supprime la copie HUD "wrappee" (dessinee decalee de +/-320/240 par
     // GameplayLayer.BatchedRender) : sans wrap horizontal, un joueur sorti a gauche
     // faisait reapparaitre son HUD (fleches) a droite de l'ecran.
-    private static void HUDRender_patch(On.TowerFall.Player.orig_HUDRender orig, global::TowerFall.Player self, bool wrapped)
+    private static bool HUDRender_patch(Player __instance, bool wrapped)
     {
-      if (wrapped && IsSpeedRun(self))
-        return;
-      orig(self, wrapped);
+      // false => on saute l'original (pas de rendu HUD wrappe en Speed Run).
+      return !(wrapped && IsSpeedRun(__instance));
     }
 
-    private static bool IsSpeedRun(global::TowerFall.Player self)
+    private static bool IsSpeedRun(Player self)
     {
       MatchSettings ms = self?.Level?.Session?.MatchSettings;
       return SpeedRunRenderPatches.IsSpeedRunMode(ms);
     }
 
-    private static void Added_patch(On.TowerFall.Player.orig_Added orig, global::TowerFall.Player self)
+    private static void Added_patch(Player __instance)
     {
-      orig(self);
-
-      if (!IsSpeedRun(self) || !TFModFortRiseSpeedRunModule.Settings.SpeedRunSameSpawn)
+      if (!IsSpeedRun(__instance) || !TFModFortRiseSpeedRunModule.Settings.SpeedRunSameSpawn)
         return;
 
-      var spawns = self.Level.GetXMLPositions("PlayerSpawn");
+      var spawns = __instance.Level.GetXMLPositions("PlayerSpawn");
       if (spawns == null || spawns.Count == 0)
         return;
 
@@ -57,27 +68,30 @@ namespace TFModFortRiseSpeedRun
       foreach (Vector2 sp in spawns)
         if (sp.X < target.X)
           target = sp;
-      self.Position = target;
+      __instance.Position = target;
     }
 
-    private static void Update_patch(On.TowerFall.Player.orig_Update orig, global::TowerFall.Player self)
+    private static void Update_prefix_patch(Player __instance, ref UpdateState __state)
     {
-      if (IsSpeedRun(self) && TFModFortRiseSpeedRunModule.Settings.SpeedRunNoArrows)
+      __state.Active = IsSpeedRun(__instance) && TFModFortRiseSpeedRunModule.Settings.SpeedRunNoArrows;
+      if (__state.Active)
       {
-        bool prev = global::TowerFall.Player.ShootLock;
-        global::TowerFall.Player.ShootLock = true;
-        orig(self);
-        global::TowerFall.Player.ShootLock = prev;
-        return;
+        __state.PreviousShootLock = Player.ShootLock;
+        Player.ShootLock = true;
       }
-      orig(self);
     }
 
-    private static void HurtBouncedOn_patch(On.TowerFall.Player.orig_HurtBouncedOn orig, global::TowerFall.Player self, int bouncerIndex)
+    private static void Update_postfix_patch(ref UpdateState __state)
     {
-      if (IsSpeedRun(self) && TFModFortRiseSpeedRunModule.Settings.SpeedRunNoStomp)
-        return; // pas de degat quand on saute sur la tete
-      orig(self, bouncerIndex);
+      if (__state.Active)
+        Player.ShootLock = __state.PreviousShootLock;
+    }
+
+    private static bool HurtBouncedOn_patch(Player __instance, int bouncerIndex)
+    {
+      if (IsSpeedRun(__instance) && TFModFortRiseSpeedRunModule.Settings.SpeedRunNoStomp)
+        return false; // pas de degat quand on saute sur la tete
+      return true;
     }
   }
 }

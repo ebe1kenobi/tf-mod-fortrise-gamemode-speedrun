@@ -1,0 +1,19 @@
+{
+	"name": "SpeedRun",
+	"version": "1.0.0",
+	"author": "ebe1.kenobi",
+	"description": "Speed Run game mode",
+	"dll": "TFModFortRiseSpeedRun.dll",
+	"dependencies": [
+		{
+			"name": "FortRise",
+			"version": "5.2.3"
+		}
+	],
+	"optionalDependencies": [
+		{
+			"name": "Teuria.WiderSet",
+			"version": "0.7.0"
+		}
+	]
+}

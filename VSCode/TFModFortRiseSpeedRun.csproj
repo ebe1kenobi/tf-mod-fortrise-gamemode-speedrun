@@ -1,37 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
-    <LangVersion>7.3</LangVersion>
+    <TargetFramework>net10.0</TargetFramework>
+    <ModLoaderPath>C:\Program Files (x86)\Steam\steamapps\common\TowerFall\FortRise</ModLoaderPath>
 
+    <ModVersion>1.0.0</ModVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MonoMod" Version="22.5.1.1">
-      <IncludeAssets>compile</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="MonoMod.RuntimeDetour" Version="22.5.1.1">
-      <IncludeAssets>compile</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="FortRise.Configuration" Version="1.5.6" />
   </ItemGroup>
-
-
 
   <ItemGroup>
-    <Reference Include="FNA">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\TowerFall\FNA.dll</HintPath>
-    </Reference>
-    <Reference Include="MMHOOK_TowerFall">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\TowerFall\MMHOOK_TowerFall.dll</HintPath>
-    </Reference>
-    <Reference Include="TeuJson">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\TowerFall\TeuJson.dll</HintPath>
-    </Reference>
-    <Reference Include="TowerFall">
-      <HintPath>..\..\..\TowerFall.exe</HintPath>
-      <Private>False</Private>
-    </Reference>
+    <Content Include="../ModFile/meta.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
-    
-</Project>
 
+</Project>

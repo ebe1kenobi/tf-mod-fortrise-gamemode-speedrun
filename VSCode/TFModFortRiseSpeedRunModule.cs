@@ -1,98 +1,102 @@
-﻿using System;
+using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using FortRise;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
-using Monocle;
-using MonoMod.ModInterop;
-using TowerFall;
+using Microsoft.Extensions.Logging;
+using Teuria.WiderSet;
 
 namespace TFModFortRiseSpeedRun
 {
-  [Fort("com.ebe1.kenobi.TFModFortRiseSpeedRun", "TFModFortRiseSpeedRun")]
-  public class TFModFortRiseSpeedRunModule : FortModule
+  public class TFModFortRiseSpeedRunModule : Mod
   {
     public static TFModFortRiseSpeedRunModule Instance;
 
-    public override Type SettingsType => typeof(TFModFortRiseSpeedRunSettings);
-    public static TFModFortRiseSpeedRunSettings Settings => (TFModFortRiseSpeedRunSettings)Instance.InternalSettings;
-    public TFModFortRiseSpeedRunModule()
+    // Presence de WiderSet (ex-EightPlayerMod) : remplace l'ancien EigthPlayerImport
+    // via MonoMod.ModInterop. Non-null => le mod grand-ecran est installe.
+    public static IWiderSetModApi WiderSet;
+
+    private static Type[] Registerables = [
+        typeof(SpeedRun),
+    ];
+
+    internal Type[] Hookables = [
+        typeof(SpeedRunRenderPatches),
+        typeof(SpeedRunWrapPatches),
+        typeof(MySpeedRunPlayer),
+        typeof(MySpeedRunModeButton),
+        typeof(SpeedRunWideScreen),
+    ];
+
+    public static TFModFortRiseSpeedRunSettings Settings => Instance.GetSettings<TFModFortRiseSpeedRunSettings>()!;
+
+    public TFModFortRiseSpeedRunModule(IModContent content, IModuleContext context, ILogger logger) : base(content, context, logger)
     {
       if (!Debugger.IsAttached)
       {
         //Debugger.Launch(); // Proposera d’attacher Visual Studio
       }
       Instance = this;
-      //Logger.Init("TFModFortRiseSpeedRun");
+      //TFModFortRiseSpeedRun.Logger.Init("TFModFortRiseSpeedRun");
+
+      foreach (var registerable in Registerables)
+      {
+        registerable.GetMethod(nameof(IRegisterable.Register))!.Invoke(null, [content, context.Registry]);
+      }
+
+      foreach (var hookable in Hookables)
+      {
+        hookable.GetMethod(nameof(IHookable.Load))!.Invoke(null, [context.Harmony]);
+      }
+
+      // FortRise 4 utilisait AfterLoad (RiseCore.ModsAfterLoad). FortRise 5 :
+      // OnModLoadStateFinished se declenche quand la phase de chargement de TOUS les
+      // mods est terminee -> seul moment fiable pour detecter WiderSet, qui peut se
+      // charger apres nous.
+      context.Events.OnModLoadStateFinished += OnLoadStateFinished;
     }
 
-    public override void LoadContent()
+    public override ModuleSettings CreateSettings()
     {
+      return new TFModFortRiseSpeedRunSettings();
     }
 
-    public override void Load()
+    private void OnLoadStateFinished(object sender, LoadState state)
     {
-      SpeedRunRenderPatches.Load();
-      SpeedRunWrapPatches.Load();
-      MySpeedRunPlayer.Load();
-      MySpeedRunModeButton.Load();
-      SpeedRunWideScreen.Load();
-      typeof(EigthPlayerImport).ModInterop();
-    }
+      if (state != LoadState.Ready)
+        return;
 
-    // Appele une fois TOUS les mods charges (RiseCore.ModsAfterLoad). C'est le seul
-    // moment fiable pour detecter WiderSetMod (EightPlayerMod), qui peut se charger
-    // APRES nous : a ce stade son export ModInterop est enregistre.
-    public override void AfterLoad()
-    {
-      base.AfterLoad();
-      // Re-lie l'import maintenant que l'export de WiderSetMod (charge tardivement)
-      // est disponible.
-      typeof(EigthPlayerImport).ModInterop();
+      // Re-tente la liaison de l'API WiderSet maintenant que tous les mods sont charges.
+      if (WiderSet == null)
+        WiderSet = Context.Interop.GetApi<IWiderSetModApi>("Teuria.WiderSet");
 
-      // Incompatibilite wide-screen avec WiderSetMod : s'il est present, on retire
-      // le mode Speed Run de la selection Versus ET on neutralise notre wide-screen
-      // (sinon nos hooks de redimensionnement ecraseraient celui de WiderSetMod a
-      // chaque chargement de niveau). Idempotent : AfterLoad peut etre appele plusieurs fois.
-      if (EigthPlayerImport.IsEightPlayer != null)
+      // Incompatibilite grand-ecran avec WiderSet : s'il est present, on retire le
+      // mode Speed Run de la selection Versus ET on neutralise notre wide-screen
+      // (sinon nos hooks de redimensionnement ecraseraient celui de WiderSet a chaque
+      // chargement de niveau). Idempotent : peut etre appele plusieurs fois.
+      if (WiderSet != null)
       {
         SpeedRunWideScreen.Disabled = true;
         DisableSpeedRunMode();
       }
     }
 
+    // Retire l'entree SpeedRun du registre FortRise 5.
+    //
+    // Contrairement a FortRise 4, aucune re-indexation n'est necessaire : l'identite
+    // d'un mode est sa valeur Modes (stable, obtenue via EnumPool), pas sa position
+    // dans VersusGameModes. GameModeRegistry.Register alimente exactement quatre
+    // collections ; on defait ces quatre entrees. (GameModeTypes / GameModesMap ne
+    // sont jamais peuplees pour les modes Versus en FortRise 5.)
     private static void DisableSpeedRunMode()
     {
-      var list = GameModeRegistry.VersusGameModes;
-      int idx = list.FindIndex(m => m is SpeedRun);
-      if (idx < 0)
+      var entry = GameModeRegistry.VersusGameModes.FirstOrDefault(m => m.VersusGameMode is SpeedRun);
+      if (entry == null)
         return; // deja retire
 
-      var removed = list[idx];
-      list.RemoveAt(idx);
-      GameModeRegistry.GameModeTypes.Remove(removed.GetType());
-      GameModeRegistry.GameModesMap.Remove(removed.ID);
-
-      // Les indices stockes pointent dans VersusGameModes : decrementer ceux > idx
-      // pour garder les mappings des autres modes coherents apres le retrait.
-      foreach (var key in GameModeRegistry.GameModeTypes.Keys.ToList())
-        if (GameModeRegistry.GameModeTypes[key] > idx)
-          GameModeRegistry.GameModeTypes[key]--;
-      foreach (var key in GameModeRegistry.LegacyGameModesMap.Keys.ToList())
-        if (GameModeRegistry.LegacyGameModesMap[key] > idx)
-          GameModeRegistry.LegacyGameModesMap[key]--;
-    }
-
-
-    public override void Unload()
-    {
-      SpeedRunRenderPatches.Unload();
-      SpeedRunWrapPatches.Unload();
-      MySpeedRunPlayer.Unload();
-      MySpeedRunModeButton.Unload();
-      SpeedRunWideScreen.Unload();
+      GameModeRegistry.VersusGameModes.Remove(entry);
+      GameModeRegistry.RegistryVersusGameModes.Remove(entry.Name);
+      GameModeRegistry.ModesToVersusGameMode.Remove(entry.Modes);
+      GameModeRegistry.NameToModes.Remove(entry.Name);
     }
   }
 }

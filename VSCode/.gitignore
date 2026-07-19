@@ -395,3 +395,7 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
+
+# Ancien TowerFall.exe (FortRise 4). Renomme car il masquait
+# TowerFall.Patch.dll lors de la resolution des references MSBuild.
+*.fr4-leftover

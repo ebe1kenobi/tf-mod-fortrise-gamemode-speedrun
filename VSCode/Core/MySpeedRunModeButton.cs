@@ -1,40 +1,41 @@
+using FortRise;
+using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Monocle;
 using TowerFall;
 
 namespace TFModFortRiseSpeedRun
 {
-  // Sur le bouton de selection de mode Versus, quand le mode Loop Scroll est
+  // Sur le bouton de selection de mode Versus, quand le mode Speed Run est
   // selectionne : appui sur Y (bouton "fleches") -> ouvre la popup d'options.
-  internal static class MySpeedRunModeButton
+  public class MySpeedRunModeButton : IHookable
   {
-    internal static void Load()
+    public static void Load(IHarmony harmony)
     {
-      On.TowerFall.VersusModeButton.Update += Update_patch;
-      On.TowerFall.VersusModeButton.Render += Render_patch;
-      On.TowerFall.VersusMapButton.OnConfirm += MapConfirm_patch;
-    }
-
-    internal static void Unload()
-    {
-      On.TowerFall.VersusModeButton.Update -= Update_patch;
-      On.TowerFall.VersusModeButton.Render -= Render_patch;
-      On.TowerFall.VersusMapButton.OnConfirm -= MapConfirm_patch;
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(VersusModeButton), nameof(VersusModeButton.Update)),
+          prefix: new HarmonyMethod(Update_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(VersusModeButton), nameof(VersusModeButton.Render)),
+          postfix: new HarmonyMethod(Render_patch)
+      );
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(VersusMapButton), nameof(VersusMapButton.OnConfirm)),
+          prefix: new HarmonyMethod(MapConfirm_patch)
+      );
     }
 
     // Tant que la popup est ouverte, on ne demarre pas le match (sinon la scene
     // menu est remplacee sans fermer la popup). Il faut fermer la popup d'abord.
-    private static void MapConfirm_patch(On.TowerFall.VersusMapButton.orig_OnConfirm orig, global::TowerFall.VersusMapButton self)
+    private static bool MapConfirm_patch()
     {
-      if (UISpeedRunPopup.IsOpen)
-        return;
-      orig(self);
+      return !UISpeedRunPopup.IsOpen;
     }
 
     private static bool IsSpeedRunSelected()
     {
-      return MainMenu.VersusMatchSettings.IsCustom
-          && MainMenu.VersusMatchSettings.CurrentModeName == nameof(SpeedRun);
+      return SpeedRunRenderPatches.IsSpeedRunMode(MainMenu.VersusMatchSettings);
     }
 
     private static bool AnyPlayerArrowsPressed()
@@ -48,28 +49,26 @@ namespace TFModFortRiseSpeedRun
       return false;
     }
 
-    private static void Update_patch(On.TowerFall.VersusModeButton.orig_Update orig, global::TowerFall.VersusModeButton self)
+    private static bool Update_patch(VersusModeButton __instance)
     {
-      if (IsSpeedRunSelected() && self.Selected && !UISpeedRunPopup.IsOpen && AnyPlayerArrowsPressed())
+      if (IsSpeedRunSelected() && __instance.Selected && !UISpeedRunPopup.IsOpen && AnyPlayerArrowsPressed())
       {
-        if (self.Scene != null)
+        if (__instance.Scene != null)
         {
           Sounds.ui_click.Play(160f, 1f);
-          self.Scene.Add(new UISpeedRunPopup(self));
+          __instance.Scene.Add(new UISpeedRunPopup(__instance));
         }
-        return;
+        return false;
       }
-      orig(self);
+      return true;
     }
 
-    private static void Render_patch(On.TowerFall.VersusModeButton.orig_Render orig, global::TowerFall.VersusModeButton self)
+    private static void Render_patch(VersusModeButton __instance)
     {
-      orig(self);
-
-      if (!self.Selected || UISpeedRunPopup.IsOpen || !IsSpeedRunSelected())
+      if (!__instance.Selected || UISpeedRunPopup.IsOpen || !IsSpeedRunSelected())
         return;
 
-      Vector2 hintPos = self.Position + new Vector2(0f, 22f);
+      Vector2 hintPos = __instance.Position + new Vector2(0f, 22f);
       Draw.OutlineTextCentered(TFGame.Font, "Y: OPTIONS", hintPos, Calc.HexToColor("FFEC5E"), 1f);
     }
   }
