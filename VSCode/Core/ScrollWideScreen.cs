@@ -7,7 +7,7 @@ using Monocle;
 using MonoMod.Utils;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Option "wide screen" du mode Loop Scroll : elargit la fenetre visible de
   // 320x240 a WIDE_WIDTH x 240 (supprime les bandes noires laterales) PENDANT les
@@ -19,7 +19,7 @@ namespace TFModFortRiseSpeedRun
   // du niveau (Level.foregroundRenderTarget) et le canvas d'eclairage
   // (LightingLayer.Canvas, devenu une auto-propriete en FortRise 5 mais toujours
   // accessible par DynamicData sous le meme nom).
-  public class SpeedRunWideScreen : IHookable
+  public class ScrollWideScreen : IHookable
   {
     public const int WIDE_WIDTH = 420;
     private const int NORMAL_WIDTH = 320;
@@ -50,6 +50,42 @@ namespace TFModFortRiseSpeedRun
           AccessTools.DeclaredConstructor(typeof(MainMenu), [typeof(MainMenu.MenuState)]),
           prefix: new HarmonyMethod(MainMenuCtor_patch)
       );
+
+      // Reparation d'un defaut de Monocle, appliquee quel que soit l'appelant et
+      // meme si le wide-screen de ce mod est desactive : voir Resize_postfix.
+      harmony.Patch(
+          AccessTools.DeclaredMethod(typeof(Screen), nameof(Screen.Resize)),
+          postfix: new HarmonyMethod(Resize_postfix)
+      );
+    }
+
+    /// <summary>
+    /// Repare Monocle.Screen.Resize, qui ecrit "this.width = width; this.width =
+    /// height;" - height n'est jamais affecte et width est ecrase par la hauteur.
+    ///
+    /// ScaledWidth en decoule, et avec lui le centrage DrawRect.X calcule dans
+    /// HandleWindowedViewport : apres tout redimensionnement, l'image est decalee
+    /// horizontalement.
+    ///
+    /// Ce correctif etait auparavant applique dans ResizeScreen, donc seulement quand
+    /// ce mod redimensionnait lui-meme. Or il se met en retrait quand WiderSet est
+    /// present (Disabled), et WiderSet appelle Resize de son cote : la combinaison des
+    /// deux mods laissait le defaut sans reparation, d'ou l'ecran decale. Le corriger
+    /// sur Resize repare tous les appelants, y compris ceux qu'on ne connait pas.
+    /// </summary>
+    private static void Resize_postfix(Screen __instance, int width, int height)
+    {
+      var dyn = DynamicData.For(__instance);
+      dyn.Set("width", width);
+      dyn.Set("height", height);
+
+      // Le centrage a ete calcule avec les mauvaises valeurs : on le refait.
+      if (__instance.IsFullscreen)
+        __instance.HandleFullscreenViewport();
+      else
+        dyn.Invoke("SetWindowSize", __instance.ScaledWidth, __instance.ScaledHeight);
+
+      dyn.Dispose();
     }
 
     // Le decor (Background) ne couvre que 320px de large ; au-dela le canvas
@@ -65,19 +101,49 @@ namespace TFModFortRiseSpeedRun
       }
     }
 
-    // Neutralise entierement le wide-screen (mis a true si WiderSet est present,
-    // pour ne pas entrer en conflit avec son propre redimensionnement d'ecran).
-    // Comme tous les patches sont gardes par IsWide, ce flag les rend tous inertes.
-    internal static bool Disabled;
-
+    /// <summary>
+    /// Vrai des que l'ecran est plus large que la normale, qui que soit celui qui l'a
+    /// elargi. C'est la bonne question pour les tampons de rendu : ils doivent suivre
+    /// la largeur reelle, pas savoir d'ou elle vient.
+    /// </summary>
     internal static bool IsWide
     {
       get
       {
-        return !Disabled
-            && Engine.Instance != null
+        return Engine.Instance != null
             && Engine.Instance.Screen != null
             && Engine.Instance.Screen.Width != NORMAL_WIDTH;
+      }
+    }
+
+    /// <summary>
+    /// Vrai quand WiderSet tient lui-meme l'ecran en large, c'est-a-dire en mode
+    /// 8 joueurs.
+    ///
+    /// La largeur lui appartient alors, et elle vaut deja 420 - exactement ce que ce
+    /// mode veut. Y toucher reviendrait a ecraser son reglage a chaque chargement de
+    /// niveau, ce qui etait la raison de neutraliser tout le wide-screen quand
+    /// WiderSet etait present. Se retirer sur ce seul point suffit, et les deux modes
+    /// cohabitent.
+    /// </summary>
+    private static bool WiderSetOwnsScreen
+    {
+      get
+      {
+        var api = TFModFortRiseScrollModule.WiderSet;
+        if (api == null)
+        {
+          return false;
+        }
+
+        try
+        {
+          return api.IsWide;
+        }
+        catch
+        {
+          return false;
+        }
       }
     }
 
@@ -93,27 +159,25 @@ namespace TFModFortRiseSpeedRun
       if (screen == null || screen.Width == width)
         return;
 
+      // La correction des champs prives de Screen et le recalcul du centrage se font
+      // maintenant dans Resize_postfix, pour tous les appelants et non seulement ici.
       screen.Resize(width, 240, screen.Scale);
-      // Le Resize vanilla ne met pas correctement a jour ses champs prives
-      // width/height (this.width est ecrase deux fois) : on les corrige puis on
-      // refait le calcul de centrage qui en depend (ScaledWidth).
-      var dyn = DynamicData.For(screen);
-      dyn.Set("width", width);
-      dyn.Set("height", 240);
-      if (screen.IsFullscreen)
-        screen.HandleFullscreenViewport();
-      else
-        dyn.Invoke("SetWindowSize", screen.ScaledWidth, screen.ScaledHeight);
-      dyn.Dispose();
     }
 
     // Largeur decidee au chargement de CHAQUE round : garantit qu'un match dans
     // un autre mode repasse en 320 meme sans retour au menu.
     private static void LoaderCtor_patch(Session session)
     {
+      // En mode 8 joueurs, la largeur est celle de WiderSet : on la laisse. Elle vaut
+      // deja 420, le round de Speed Run est donc large de toute facon.
+      if (WiderSetOwnsScreen)
+      {
+        return;
+      }
+
       bool wantWide = session != null
-                   && SpeedRunRenderPatches.IsSpeedRunMode(session.MatchSettings)
-                   && TFModFortRiseSpeedRunModule.Settings.SpeedRunWideScreen;
+                   && ScrollRenderPatches.IsSpeedRunMode(session.MatchSettings)
+                   && TFModFortRiseScrollModule.Settings.SpeedRunWideScreen;
       if (wantWide)
         ResizeScreen(WIDE_WIDTH);
       else
@@ -162,6 +226,13 @@ namespace TFModFortRiseSpeedRun
     // Retour au menu principal : ecran normal.
     private static void MainMenuCtor_patch()
     {
+      // WiderSet remet lui-meme 320 en quittant le mode 8 joueurs, depuis ce meme
+      // constructeur : le devancer reviendrait a lui reprendre la main.
+      if (WiderSetOwnsScreen)
+      {
+        return;
+      }
+
       RestoreScreen();
     }
   }

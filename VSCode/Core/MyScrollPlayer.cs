@@ -4,13 +4,13 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Options gameplay du mode Loop Scroll appliquees au joueur :
   //  - meme spawn (course) : tous les joueurs apparaissent au point le plus a gauche.
   //  - pas de fleches : ShootLock force pendant l'update (aucun tir).
   //  - pas de stomp : HurtBouncedOn ignore (sauter sur la tete ne tue pas).
-  public class MySpeedRunPlayer : IHookable
+  public class MyScrollPlayer : IHookable
   {
     // Etat transmis entre prefix et postfix de Update (pour restaurer ShootLock).
     private struct UpdateState
@@ -52,12 +52,12 @@ namespace TFModFortRiseSpeedRun
     private static bool IsSpeedRun(Player self)
     {
       MatchSettings ms = self?.Level?.Session?.MatchSettings;
-      return SpeedRunRenderPatches.IsSpeedRunMode(ms);
+      return ScrollRenderPatches.IsSpeedRunMode(ms);
     }
 
     private static void Added_patch(Player __instance)
     {
-      if (!IsSpeedRun(__instance) || !TFModFortRiseSpeedRunModule.Settings.SpeedRunSameSpawn)
+      if (!IsSpeedRun(__instance) || !TFModFortRiseScrollModule.Settings.SpeedRunSameSpawn)
         return;
 
       var spawns = __instance.Level.GetXMLPositions("PlayerSpawn");
@@ -73,7 +73,7 @@ namespace TFModFortRiseSpeedRun
 
     private static void Update_prefix_patch(Player __instance, ref UpdateState __state)
     {
-      __state.Active = IsSpeedRun(__instance) && TFModFortRiseSpeedRunModule.Settings.SpeedRunNoArrows;
+      __state.Active = IsSpeedRun(__instance) && TFModFortRiseScrollModule.Settings.SpeedRunNoArrows;
       if (__state.Active)
       {
         __state.PreviousShootLock = Player.ShootLock;
@@ -89,7 +89,7 @@ namespace TFModFortRiseSpeedRun
 
     private static bool HurtBouncedOn_patch(Player __instance, int bouncerIndex)
     {
-      if (IsSpeedRun(__instance) && TFModFortRiseSpeedRunModule.Settings.SpeedRunNoStomp)
+      if (IsSpeedRun(__instance) && TFModFortRiseScrollModule.Settings.SpeedRunNoStomp)
         return false; // pas de degat quand on saute sur la tete
       return true;
     }

@@ -4,7 +4,7 @@ using HarmonyLib;
 using Microsoft.Xna.Framework;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Neutralise ENTIEREMENT le wrap moteur pour le mode Loop Scroll.
   //
@@ -13,7 +13,7 @@ namespace TFModFortRiseSpeedRun
   // vanilla est cable en dur a 320/240 en coordonnees ABSOLUES (teleportation de
   // position, hitbox fantomes, tests de collision modulo, rendus fantomes,
   // lumieres fantomes) et se declencherait a tort partout au-dela du premier ecran.
-  public class SpeedRunWrapPatches : IHookable
+  public class ScrollWrapPatches : IHookable
   {
     public static void Load(IHarmony harmony)
     {
@@ -46,13 +46,13 @@ namespace TFModFortRiseSpeedRun
     // Position : aucune teleportation aux frontieres 320/240.
     private static bool EnforceScreenWrap_patch()
     {
-      return !SpeedRunRenderPatches.IsSpeedRunActive();
+      return !ScrollRenderPatches.IsSpeedRunActive();
     }
 
     // Collision : une seule hitbox reelle, pas de fantomes a +/-320/240.
     private static bool BuildHitList_patch(WrapHitbox __instance, List<Rectangle> hitList)
     {
-      if (!SpeedRunRenderPatches.IsSpeedRunActive())
+      if (!ScrollRenderPatches.IsSpeedRunActive())
         return true;
 
       hitList.Clear();
@@ -64,7 +64,7 @@ namespace TFModFortRiseSpeedRun
     // ferait tester la collision dans le mauvais bloc).
     private static bool ApplyWrapX_patch(float x, ref float __result)
     {
-      if (SpeedRunRenderPatches.IsSpeedRunActive())
+      if (ScrollRenderPatches.IsSpeedRunActive())
       {
         __result = x;
         return false;
@@ -74,7 +74,7 @@ namespace TFModFortRiseSpeedRun
 
     private static bool ApplyWrapY_patch(float y, ref float __result)
     {
-      if (SpeedRunRenderPatches.IsSpeedRunActive())
+      if (ScrollRenderPatches.IsSpeedRunActive())
       {
         __result = y;
         return false;
@@ -85,7 +85,7 @@ namespace TFModFortRiseSpeedRun
     // Rendu : une seule copie, pas de rendus fantomes decales de +/-320/240.
     private static bool Render_patch(LevelEntity __instance)
     {
-      if (!SpeedRunRenderPatches.IsSpeedRunActive())
+      if (!ScrollRenderPatches.IsSpeedRunActive())
         return true;
 
       __instance.DoWrapRender();
@@ -96,7 +96,7 @@ namespace TFModFortRiseSpeedRun
     // ajoute des halos a +/-320/240 en dur quand ScreenWrap est actif).
     private static bool DrawLight_patch(LevelEntity __instance, LightingLayer layer)
     {
-      if (!SpeedRunRenderPatches.IsSpeedRunActive())
+      if (!ScrollRenderPatches.IsSpeedRunActive())
         return true;
 
       layer.DrawLight(__instance.Position, __instance.LightRadius, layer.Sine, __instance.LightColor * __instance.LightAlpha);

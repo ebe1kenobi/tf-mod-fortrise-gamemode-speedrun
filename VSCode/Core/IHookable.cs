@@ -1,6 +1,6 @@
 using FortRise;
 
-namespace TFModFortRiseSpeedRun;
+namespace TFModFortRiseScroll;
 
 public interface IHookable
 {

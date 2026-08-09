@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using FortRise;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   public static class Logger {
     static CustomLogger logger;

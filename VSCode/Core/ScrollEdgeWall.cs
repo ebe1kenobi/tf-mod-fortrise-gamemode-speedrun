@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Mur solide INVISIBLE place aux bords de la fenetre camera en mode
   // "follow players". Contrairement au simple clamp de position, une vraie
@@ -10,9 +10,9 @@ namespace TFModFortRiseSpeedRun
   // saut possible) quand le bord bas le retient au-dessus d'un trou.
   // Repositionne chaque frame par SpeedRunRoundLogic ; le haut de l'ecran
   // reste ouvert (un saut au-dessus retombe tout seul).
-  internal class SpeedRunEdgeWall : Solid
+  internal class ScrollEdgeWall : Solid
   {
-    public SpeedRunEdgeWall(int width, int height) : base(Vector2.Zero, width, height, false)
+    public ScrollEdgeWall(int width, int height) : base(Vector2.Zero, width, height, false)
     {
       Visible = false;
     }

@@ -4,11 +4,11 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Popup de reglage du mode Loop Scroll, ouverte avec Y depuis le bouton de mode
   // (cf. MySpeedRunModeButton). Edite directement les ModuleSettings.
-  public class UISpeedRunPopup : Entity
+  public class UIScrollPopup : Entity
   {
     private class Field
     {
@@ -26,7 +26,7 @@ namespace TFModFortRiseSpeedRun
     private int selected;
 
     // Instance courante de la popup (null si aucune).
-    public static UISpeedRunPopup Current;
+    public static UIScrollPopup Current;
 
     // Ouverte seulement si l'instance courante appartient a la scene ACTIVE.
     // Auto-guerison : si la scene a ete remplacee alors que la popup etait ouverte
@@ -35,7 +35,7 @@ namespace TFModFortRiseSpeedRun
     // scene courante -> elle ne compte plus comme ouverte, et le hint/Y reviennent.
     public static bool IsOpen => Current != null && Current.Scene == Engine.Instance.Scene;
 
-    public UISpeedRunPopup(BorderButton ownerButton)
+    public UIScrollPopup(BorderButton ownerButton)
     {
       this.ownerButton = ownerButton;
       Position = new Vector2(160f, 120f);
@@ -44,12 +44,12 @@ namespace TFModFortRiseSpeedRun
 
     private void BuildFields()
     {
-      TFModFortRiseSpeedRunSettings s = TFModFortRiseSpeedRunModule.Settings;
+      TFModFortRiseScrollSettings s = TFModFortRiseScrollModule.Settings;
 
       fields.Add(new Field
       {
         Label = "SHAPE",
-        Value = () => s.SpeedRunShape == TFModFortRiseSpeedRunSettings.ShapeSquare ? "SQUARE" : "HORIZONTAL",
+        Value = () => s.SpeedRunShape == TFModFortRiseScrollSettings.ShapeSquare ? "SQUARE" : "HORIZONTAL",
         Left = () => s.SpeedRunShape = 1 - s.SpeedRunShape,
         Right = () => s.SpeedRunShape = 1 - s.SpeedRunShape
       });
@@ -64,7 +64,7 @@ namespace TFModFortRiseSpeedRun
         Left = () => s.SpeedRunCamera = (s.SpeedRunCamera + camNames.Length - 1) % camNames.Length,
         Right = () => s.SpeedRunCamera = (s.SpeedRunCamera + 1) % camNames.Length
       });
-      Func<bool> scrollMode = () => s.SpeedRunCamera != TFModFortRiseSpeedRunSettings.CameraFollowPlayers;
+      Func<bool> scrollMode = () => s.SpeedRunCamera != TFModFortRiseScrollSettings.CameraFollowPlayers;
 
       Field speed = IntField("SPEED", () => s.SpeedRunSpeed, v => s.SpeedRunSpeed = v, 1, 30);
       speed.Visible = scrollMode;
@@ -86,11 +86,11 @@ namespace TFModFortRiseSpeedRun
       // Portail d'arrivee. Pas de notion de tour en follow players + square ->
       // le portail n'y existe pas, on cache l'option dans ce cas.
       Field goal = BoolField("GOAL PORTAL", () => s.SpeedRunGoalPortal, v => s.SpeedRunGoalPortal = v);
-      goal.Visible = () => scrollMode() || s.SpeedRunShape == TFModFortRiseSpeedRunSettings.ShapeHorizontal;
+      goal.Visible = () => scrollMode() || s.SpeedRunShape == TFModFortRiseScrollSettings.ShapeHorizontal;
       fields.Add(goal);
 
       Field laps = IntField("LAPS (SQUARE)", () => s.SpeedRunLaps, v => s.SpeedRunLaps = v, 1, 10);
-      laps.Visible = () => s.SpeedRunGoalPortal && s.SpeedRunShape == TFModFortRiseSpeedRunSettings.ShapeSquare && scrollMode();
+      laps.Visible = () => s.SpeedRunGoalPortal && s.SpeedRunShape == TFModFortRiseScrollSettings.ShapeSquare && scrollMode();
       fields.Add(laps);
 
       // Coffres : nombre + respawn. Le contenu (types de pickup) se regle dans
@@ -158,6 +158,11 @@ namespace TFModFortRiseSpeedRun
     public override void Removed()
     {
       base.Removed();
+
+      // Les reglages ne sont ecrits sur disque qu'en sortant du menu Options du
+      // jeu : sans cet appel, une valeur changee ici serait perdue en quittant.
+      TFModFortRiseScrollModule.SaveSettingsNow();
+
       if (Current == this)
         Current = null;
       Sounds.ui_unpause.Play(160f);

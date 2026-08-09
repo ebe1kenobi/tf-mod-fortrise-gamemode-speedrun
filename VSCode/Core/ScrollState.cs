@@ -1,4 +1,4 @@
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Etat partage du scroll courant, mis a jour chaque frame par SpeedRunRoundLogic
   // et lu par les patches de wrap (SpeedRunWrapPatches) et le clamp.
@@ -7,7 +7,7 @@ namespace TFModFortRiseSpeedRun
   //   - Axe qui bouge (DirX/DirY != 0) -> mur invisible (clamp), pas de wrap.
   //   - Axe immobile                    -> wrap (relatif fenetre camera).
   // Dans un virage arrondi, les deux axes bougent -> clamp sur les deux, pas de wrap.
-  internal static class SpeedRunState
+  internal static class ScrollState
   {
     // Coin haut-gauche de la fenetre visible (monde), pour un wrap relatif camera.
     public static float CamX = 0f;

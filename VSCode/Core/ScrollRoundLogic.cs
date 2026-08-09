@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Logique de round du mode Loop Scroll.
   //
@@ -12,13 +12,13 @@ namespace TFModFortRiseSpeedRun
   // (spawn FFA, coffres, fin de round au dernier survivant). Le scrolling caméra,
   // le mur invisible et le wrap relatif-caméra seront ajoutes dans OnUpdate lors
   // des etapes suivantes.
-  public class SpeedRunRoundLogic : RoundLogic
+  public class ScrollRoundLogic : RoundLogic
   {
     private RoundEndCounter roundEndCounter;
     private bool done;
     private bool wasFinalKill;
 
-    public SpeedRunRoundLogic(Session session) : base(session, true)
+    public ScrollRoundLogic(Session session) : base(session, true)
     {
       this.roundEndCounter = new RoundEndCounter(session);
       // Pas de miasma anti-stalling : le round dure longtemps (grand niveau qui
@@ -119,7 +119,7 @@ namespace TFModFortRiseSpeedRun
     private const float PLAYER_FEET = 8f;
 
     private static bool FollowPlayersMode =>
-      TFModFortRiseSpeedRunModule.Settings.SpeedRunCamera == TFModFortRiseSpeedRunSettings.CameraFollowPlayers;
+      TFModFortRiseScrollModule.Settings.SpeedRunCamera == TFModFortRiseScrollSettings.CameraFollowPlayers;
 
     private bool scrollInit;
     private bool loopMode;
@@ -128,11 +128,11 @@ namespace TFModFortRiseSpeedRun
     private float scrollTime;
     // Murs invisibles du mode follow players (gauche, droite, bas) et le Level
     // dans lequel ils ont ete crees (recrees a chaque nouveau round/scene).
-    private SpeedRunEdgeWall wallLeft, wallRight, wallBottom;
+    private ScrollEdgeWall wallLeft, wallRight, wallBottom;
     private Level wallsLevel;
     // Portail d'arrivee : instance courante, tours boucles (square), et round
     // gagne via le portail (fige le scroll, la fin de round est geree a part).
-    private SpeedRunGoalPortal goalPortal;
+    private ScrollGoalPortal goalPortal;
     private int lapsDone;
     private bool goalReached;
     private float camX, camY;
@@ -156,11 +156,11 @@ namespace TFModFortRiseSpeedRun
       goalPortal = null;
       lapsDone = 0;
       goalReached = false;
-      loopMode = SpeedRunLevelSystem.IsLoop;
-      bandMaxCamX = Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW);
+      loopMode = ScrollLevelSystem.IsLoop;
+      bandMaxCamX = Math.Max(0f, ScrollLevelSystem.TotalWidthPixels - WinW);
       if (loopMode)
-        BuildLoopPath(Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW),
-                      Math.Max(0f, SpeedRunLevelSystem.TotalHeightPixels - 240f));
+        BuildLoopPath(Math.Max(0f, ScrollLevelSystem.TotalWidthPixels - WinW),
+                      Math.Max(0f, ScrollLevelSystem.TotalHeightPixels - 240f));
       // Follow players : la fenetre de depart est centree sur les joueurs au
       // lieu du coin haut-gauche du parcours. C'est aussi la cible du zoom
       // d'intro. Re-fait chaque frame de pre-round (cf. UpdateScroll) car les
@@ -178,8 +178,8 @@ namespace TFModFortRiseSpeedRun
       float minX, maxX, minY, maxY;
       if (!PlayersBounds(level, out minX, out maxX, out minY, out maxY))
         return;
-      camX = ClampCam((minX + maxX) / 2f - WinW / 2f, Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW));
-      camY = ClampCam((minY + maxY) / 2f - 120f, Math.Max(0f, SpeedRunLevelSystem.TotalHeightPixels - 240f));
+      camX = ClampCam((minX + maxX) / 2f - WinW / 2f, Math.Max(0f, ScrollLevelSystem.TotalWidthPixels - WinW));
+      camY = ClampCam((minY + maxY) / 2f - 120f, Math.Max(0f, ScrollLevelSystem.TotalHeightPixels - 240f));
     }
 
     // Rectangle a coins arrondis elliptiques. Le coin haut-gauche reste net (depart
@@ -313,14 +313,14 @@ namespace TFModFortRiseSpeedRun
         InitScroll(level);
 
       // Zoom pour faire tenir tout le niveau dans la fenetre visible.
-      float fitZoom = Math.Min(WinW / SpeedRunLevelSystem.TotalWidthPixels,
-                               240f / SpeedRunLevelSystem.TotalHeightPixels);
-      Vector2 levelCenter = new Vector2(SpeedRunLevelSystem.TotalWidthPixels / 2f,
-                                        SpeedRunLevelSystem.TotalHeightPixels / 2f);
+      float fitZoom = Math.Min(WinW / ScrollLevelSystem.TotalWidthPixels,
+                               240f / ScrollLevelSystem.TotalHeightPixels);
+      Vector2 levelCenter = new Vector2(ScrollLevelSystem.TotalWidthPixels / 2f,
+                                        ScrollLevelSystem.TotalHeightPixels / 2f);
 
       // Option desactivee : pas de vue d'ensemble ni d'animation, la camera se
       // place directement sur la fenetre de depart.
-      if (!TFModFortRiseSpeedRunModule.Settings.SpeedRunIntroZoom)
+      if (!TFModFortRiseScrollModule.Settings.SpeedRunIntroZoom)
       {
         zoomStarted = true;
         zoomInT = 1f;
@@ -382,18 +382,18 @@ namespace TFModFortRiseSpeedRun
       // Acceleration progressive : toutes les N secondes, +amount dixiemes de
       // px/frame sur la vitesse de base (plafonnee a MAX_SPEED_TENTHS).
       scrollTime += Engine.TimeMult;
-      float speedTenths = TFModFortRiseSpeedRunModule.Settings.SpeedRunSpeed;
-      int accelAmount = TFModFortRiseSpeedRunModule.Settings.SpeedRunAccelAmount;
+      float speedTenths = TFModFortRiseScrollModule.Settings.SpeedRunSpeed;
+      int accelAmount = TFModFortRiseScrollModule.Settings.SpeedRunAccelAmount;
       if (accelAmount > 0)
       {
-        int accelEvery = Math.Max(1, TFModFortRiseSpeedRunModule.Settings.SpeedRunAccelEvery);
+        int accelEvery = Math.Max(1, TFModFortRiseScrollModule.Settings.SpeedRunAccelEvery);
         speedTenths += accelAmount * (float)Math.Floor(scrollTime / (accelEvery * 60f));
         if (speedTenths > MAX_SPEED_TENTHS)
           speedTenths = MAX_SPEED_TENTHS;
       }
       float baseSpeed = speedTenths / 10f * Engine.TimeMult;
-      bool followLeader = false; //TFModFortRiseSpeedRunModule.Settings.SpeedRunCamera == TFModFortRiseSpeedRunSettings.CameraFollowLeader;
-      bool leaveBehind = TFModFortRiseSpeedRunModule.Settings.SpeedRunLeaveBehind;
+      bool followLeader = false; //TFModFortRiseScrollModule.Settings.SpeedRunCamera == TFModFortRiseScrollSettings.CameraFollowLeader;
+      bool leaveBehind = TFModFortRiseScrollModule.Settings.SpeedRunLeaveBehind;
 
       int dirX, dirY;
       if (loopMode)
@@ -426,10 +426,10 @@ namespace TFModFortRiseSpeedRun
       }
 
       // Etat partage lu par les patches de wrap et le clamp.
-      SpeedRunState.CamX = camX;
-      SpeedRunState.CamY = camY;
-      SpeedRunState.DirX = dirX;
-      SpeedRunState.DirY = dirY;
+      ScrollState.CamX = camX;
+      ScrollState.CamY = camY;
+      ScrollState.DirX = dirX;
+      ScrollState.DirY = dirY;
 
       level.Camera.X = camX;
       level.Camera.Y = camY;
@@ -498,18 +498,18 @@ namespace TFModFortRiseSpeedRun
       float minX, maxX, minY, maxY;
       if (PlayersBounds(level, out minX, out maxX, out minY, out maxY))
       {
-        float maxCamX = Math.Max(0f, SpeedRunLevelSystem.TotalWidthPixels - WinW);
-        float maxCamY = Math.Max(0f, SpeedRunLevelSystem.TotalHeightPixels - 240f);
+        float maxCamX = Math.Max(0f, ScrollLevelSystem.TotalWidthPixels - WinW);
+        float maxCamY = Math.Max(0f, ScrollLevelSystem.TotalHeightPixels - 240f);
         camX = FollowAxis(camX, minX, maxX, WinW, maxCamX);
         camY = FollowAxis(camY, minY, maxY, 240f, maxCamY);
       }
 
       // Etat partage : camera sans direction de scroll (pas de wrap, pas de
       // murs directionnels).
-      SpeedRunState.CamX = camX;
-      SpeedRunState.CamY = camY;
-      SpeedRunState.DirX = 0;
-      SpeedRunState.DirY = 0;
+      ScrollState.CamX = camX;
+      ScrollState.CamY = camY;
+      ScrollState.DirX = 0;
+      ScrollState.DirY = 0;
 
       level.Camera.X = camX;
       level.Camera.Y = camY;
@@ -531,18 +531,18 @@ namespace TFModFortRiseSpeedRun
     // ------------------------------------------------------------------
     private void UpdateGoalPortal(Level level)
     {
-      if (!TFModFortRiseSpeedRunModule.Settings.SpeedRunGoalPortal || goalReached || goalPortal != null)
+      if (!TFModFortRiseScrollModule.Settings.SpeedRunGoalPortal || goalReached || goalPortal != null)
         return;
 
       Vector2? pos = null;
       if (!loopMode)
       {
         // Bande horizontale : centre du dernier ecran, des qu'il devient visible.
-        float portalX = SpeedRunLevelSystem.TotalWidthPixels - WinW / 2f;
+        float portalX = ScrollLevelSystem.TotalWidthPixels - WinW / 2f;
         if (camX + WinW >= portalX + 8f)
           pos = FindFreeSpot(level, portalX, camY + 120f);
       }
-      else if (lapsDone >= Math.Max(1, TFModFortRiseSpeedRunModule.Settings.SpeedRunLaps))
+      else if (lapsDone >= Math.Max(1, TFModFortRiseScrollModule.Settings.SpeedRunLaps))
       {
         // Anneau : point de depart du parcours (fenetre (0,0)).
         pos = FindFreeSpot(level, WinW / 2f, 120f);
@@ -550,9 +550,9 @@ namespace TFModFortRiseSpeedRun
 
       if (pos == null)
         return;
-      goalPortal = new SpeedRunGoalPortal(pos.Value);
+      goalPortal = new ScrollGoalPortal(pos.Value);
       goalPortal.OnEnter = OnGoalEntered;
-      level.Add<SpeedRunGoalPortal>(goalPortal);
+      level.Add<ScrollGoalPortal>(goalPortal);
     }
 
     // Cherche une case libre (24x24) autour de (x, y) en balayant verticalement
@@ -628,7 +628,7 @@ namespace TFModFortRiseSpeedRun
       Level level = base.Session.CurrentLevel;
       if (level == null || !level.CanSpawnTreasure || base.Session.MatchSettings.Variants.NoTreasure)
         return;
-      int count = TFModFortRiseSpeedRunModule.Settings.SpeedRunTreasureCount;
+      int count = TFModFortRiseScrollModule.Settings.SpeedRunTreasureCount;
       if (count <= 0)
         return;
       treasurePool = BuildTreasurePool();
@@ -652,7 +652,7 @@ namespace TFModFortRiseSpeedRun
     // sont retirees (meme regle que le TreasureSpawner vanilla).
     private static List<Pickups> BuildTreasurePool()
     {
-      List<Pickups> pool = TFModFortRiseSpeedRunModule.Settings.GetEnabledTreasurePickups();
+      List<Pickups> pool = TFModFortRiseScrollModule.Settings.GetEnabledTreasurePickups();
       if (!GameData.DarkWorldDLC)
         pool.RemoveAll(p => (int)p < TreasureSpawner.DarkWorldTreasures.Length
                          && TreasureSpawner.DarkWorldTreasures[(int)p]);
@@ -669,7 +669,7 @@ namespace TFModFortRiseSpeedRun
     {
       if (treasureSlots == null || treasurePool == null || treasurePool.Count == 0)
         return;
-      int respawnSec = TFModFortRiseSpeedRunModule.Settings.SpeedRunTreasureRespawn;
+      int respawnSec = TFModFortRiseScrollModule.Settings.SpeedRunTreasureRespawn;
       if (respawnSec <= 0)
         return;
 
@@ -719,12 +719,12 @@ namespace TFModFortRiseSpeedRun
       int winW = (int)WinW;
       if (wallsLevel != level)
       {
-        wallLeft = new SpeedRunEdgeWall(EDGE_WALL_THICK, 240 + EDGE_WALL_EXTEND_UP);
-        wallRight = new SpeedRunEdgeWall(EDGE_WALL_THICK, 240 + EDGE_WALL_EXTEND_UP);
-        wallBottom = new SpeedRunEdgeWall(winW + 2 * EDGE_WALL_THICK, EDGE_WALL_THICK);
-        level.Add<SpeedRunEdgeWall>(wallLeft);
-        level.Add<SpeedRunEdgeWall>(wallRight);
-        level.Add<SpeedRunEdgeWall>(wallBottom);
+        wallLeft = new ScrollEdgeWall(EDGE_WALL_THICK, 240 + EDGE_WALL_EXTEND_UP);
+        wallRight = new ScrollEdgeWall(EDGE_WALL_THICK, 240 + EDGE_WALL_EXTEND_UP);
+        wallBottom = new ScrollEdgeWall(winW + 2 * EDGE_WALL_THICK, EDGE_WALL_THICK);
+        level.Add<ScrollEdgeWall>(wallLeft);
+        level.Add<ScrollEdgeWall>(wallRight);
+        level.Add<ScrollEdgeWall>(wallBottom);
         wallsLevel = level;
       }
       // Surfaces exactement aux bords de la fenetre visible.
@@ -832,7 +832,7 @@ namespace TFModFortRiseSpeedRun
     {
       if (offscreenTimer == null)
         return;
-      float threshold = TFModFortRiseSpeedRunModule.Settings.SpeedRunOffscreenDeathDelay * 60f;
+      float threshold = TFModFortRiseScrollModule.Settings.SpeedRunOffscreenDeathDelay * 60f;
 
       foreach (Entity e in level.Players)
       {
@@ -847,7 +847,7 @@ namespace TFModFortRiseSpeedRun
         if (offscreen)
         {
           offscreenTimer[idx] += Engine.TimeMult;
-          if (false && offscreenTimer[idx] >= threshold)//todo
+          if (offscreenTimer[idx] >= threshold)//todo
             p.Die(DeathCause.Miasma, -1);
         }
         else

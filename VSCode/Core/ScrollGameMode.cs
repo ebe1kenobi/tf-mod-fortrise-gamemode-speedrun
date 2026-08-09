@@ -2,7 +2,7 @@ using FortRise;
 using Microsoft.Xna.Framework;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Mode de jeu "boucle scrollante" : le round se joue sur les levels d'un monde
   // Versus concaténés, avec une caméra qui avance automatiquement le long d'une
@@ -17,7 +17,7 @@ namespace TFModFortRiseSpeedRun
   // Etape actuelle (fondation) : le mode se comporte comme un Last Man Standing
   // classique sur un level normal. La concaténation des levels et le scrolling
   // caméra sont branchés par SpeedRunLevelSystem + SpeedRunRoundLogic.
-  public class SpeedRun : IVersusGameMode, IRegisterable
+  public class Scroll : IVersusGameMode, IRegisterable
   {
     private static ISubtextureEntry SpeedRunIcon { get; set; } = null!;
     public static IVersusGameModeEntry SpeedRunEntry { get; private set; } = null!;
@@ -37,7 +37,7 @@ namespace TFModFortRiseSpeedRun
           SubtextureAtlasDestination.MenuAtlas
       );
 
-      SpeedRunEntry = registry.GameModes.RegisterVersusGameMode(new SpeedRun());
+      SpeedRunEntry = registry.GameModes.RegisterVersusGameMode(new Scroll());
     }
 
     public int OverrideCoinOffset(Session session)
@@ -54,13 +54,13 @@ namespace TFModFortRiseSpeedRun
     {
       if (session.MatchSettings.LevelSystem is VersusLevelSystem vls)
       {
-        session.MatchSettings.LevelSystem = new SpeedRunLevelSystem(vls.VersusTowerData);
+        session.MatchSettings.LevelSystem = new ScrollLevelSystem(vls.VersusTowerData);
       }
     }
 
     public RoundLogic OnCreateRoundLogic(Session session)
     {
-      return new SpeedRunRoundLogic(session);
+      return new ScrollRoundLogic(session);
     }
   }
 }

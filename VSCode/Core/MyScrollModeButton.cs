@@ -4,11 +4,11 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Sur le bouton de selection de mode Versus, quand le mode Speed Run est
   // selectionne : appui sur Y (bouton "fleches") -> ouvre la popup d'options.
-  public class MySpeedRunModeButton : IHookable
+  public class MyScrollModeButton : IHookable
   {
     public static void Load(IHarmony harmony)
     {
@@ -30,12 +30,12 @@ namespace TFModFortRiseSpeedRun
     // menu est remplacee sans fermer la popup). Il faut fermer la popup d'abord.
     private static bool MapConfirm_patch()
     {
-      return !UISpeedRunPopup.IsOpen;
+      return !UIScrollPopup.IsOpen;
     }
 
     private static bool IsSpeedRunSelected()
     {
-      return SpeedRunRenderPatches.IsSpeedRunMode(MainMenu.VersusMatchSettings);
+      return ScrollRenderPatches.IsSpeedRunMode(MainMenu.VersusMatchSettings);
     }
 
     private static bool AnyPlayerArrowsPressed()
@@ -51,12 +51,12 @@ namespace TFModFortRiseSpeedRun
 
     private static bool Update_patch(VersusModeButton __instance)
     {
-      if (IsSpeedRunSelected() && __instance.Selected && !UISpeedRunPopup.IsOpen && AnyPlayerArrowsPressed())
+      if (IsSpeedRunSelected() && __instance.Selected && !UIScrollPopup.IsOpen && AnyPlayerArrowsPressed())
       {
         if (__instance.Scene != null)
         {
           Sounds.ui_click.Play(160f, 1f);
-          __instance.Scene.Add(new UISpeedRunPopup(__instance));
+          __instance.Scene.Add(new UIScrollPopup(__instance));
         }
         return false;
       }
@@ -65,7 +65,7 @@ namespace TFModFortRiseSpeedRun
 
     private static void Render_patch(VersusModeButton __instance)
     {
-      if (!__instance.Selected || UISpeedRunPopup.IsOpen || !IsSpeedRunSelected())
+      if (!__instance.Selected || UIScrollPopup.IsOpen || !IsSpeedRunSelected())
         return;
 
       Vector2 hintPos = __instance.Position + new Vector2(0f, 22f);

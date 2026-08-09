@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Patches permettant a un level plus grand que 32x24 tuiles de se charger et se
   // rendre. Tout est scope au mode Loop Scroll (sinon on laisse l'original).
@@ -13,7 +13,7 @@ namespace TFModFortRiseSpeedRun
   // Le loader (LevelLoaderXML.Load) et LevelTiles/LevelBGTiles codent en dur les
   // dimensions 32x24 et la taille du Tilemap (320x240 px). On les redirige vers
   // les vraies dimensions du niveau combine (SpeedRunLevelSystem.WidthTiles/HeightTiles).
-  public class SpeedRunRenderPatches : IHookable
+  public class ScrollRenderPatches : IHookable
   {
     public static void Load(IHarmony harmony)
     {
@@ -70,16 +70,16 @@ namespace TFModFortRiseSpeedRun
     internal static bool IsSpeedRunMode(MatchSettings ms)
     {
       return ms != null
-          && SpeedRun.SpeedRunEntry != null
-          && ms.Mode == SpeedRun.SpeedRunEntry.Modes;
+          && Scroll.SpeedRunEntry != null
+          && ms.Mode == Scroll.SpeedRunEntry.Modes;
     }
 
     private static bool GetBitData_patch(ref string data, ref int width, ref int height)
     {
       if (IsSpeedRunActive())
       {
-        width = SpeedRunLevelSystem.WidthTiles;
-        height = SpeedRunLevelSystem.HeightTiles;
+        width = ScrollLevelSystem.WidthTiles;
+        height = ScrollLevelSystem.HeightTiles;
       }
       return true;
     }
@@ -90,8 +90,8 @@ namespace TFModFortRiseSpeedRun
     {
       if (IsSpeedRunActive())
       {
-        width = SpeedRunLevelSystem.WidthTiles;
-        height = SpeedRunLevelSystem.HeightTiles;
+        width = ScrollLevelSystem.WidthTiles;
+        height = ScrollLevelSystem.HeightTiles;
       }
       return true;
     }
@@ -101,8 +101,8 @@ namespace TFModFortRiseSpeedRun
       // Seuls les tilemaps de niveau (320x240) doivent etre agrandis.
       if (IsSpeedRunActive() && width == 320 && height == 240)
       {
-        width = SpeedRunLevelSystem.WidthTiles * 10;
-        height = SpeedRunLevelSystem.HeightTiles * 10;
+        width = ScrollLevelSystem.WidthTiles * 10;
+        height = ScrollLevelSystem.HeightTiles * 10;
       }
       return true;
     }

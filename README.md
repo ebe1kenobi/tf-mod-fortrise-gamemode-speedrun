@@ -31,6 +31,14 @@ The Speed Run popup tweaks the main settings without going through the options m
 | Left / Right | adjust the value |
 | A or B | close |
 
+It edits the module settings directly, so both screens always show the same values.
+Some fields hide themselves when they no longer apply — the lap count only shows on
+a square course with a goal portal, for instance.
+
+Every change is written to disk immediately. FortRise only saves settings when
+leaving the game's Options menu, so a value changed in the popup — or right before
+quitting — used to be lost.
+
 ## Settings
 
 Scrolling:

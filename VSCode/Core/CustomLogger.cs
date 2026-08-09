@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   public class CustomLogger {
     static object l = new object();

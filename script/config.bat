@@ -1,10 +1,10 @@
 set REPO_DRIVE=D:
 set TOWERFALL_DRIVE=C:
 
-set BUILD_NAME=TFModFortRiseSpeedRun
-set DLL_MOD_FILE_NAME=TFModFortRiseSpeedRun.dll
-set PDB_MOD_FILE_NAME=TFModFortRiseSpeedRun.pdb
-set MODULE_DIR_NAME=tf-mod-fortrise-gamemode-speedrun
+set BUILD_NAME=TFModFortRiseScroll
+set DLL_MOD_FILE_NAME=TFModFortRiseScroll.dll
+set PDB_MOD_FILE_NAME=TFModFortRiseScroll.pdb
+set MODULE_DIR_NAME=tf-mod-fortrise-gamemode-scroll
 
 set REPO_PATH=D:\__dev\code\FR5tf-mod-fortrise-gamemode-speedrun\
 set REPO_BUILD_PATH=%REPO_PATH%VSCode\bin\Debug\net10.0\

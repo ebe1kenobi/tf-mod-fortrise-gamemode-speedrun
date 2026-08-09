@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Monocle;
 using TowerFall;
 
-namespace TFModFortRiseSpeedRun
+namespace TFModFortRiseScroll
 {
   // Portail d'arrivee ("trou noir") du mode Speed Run, copie visuelle du
   // portail de fin de niveau du mode coop Dark World (NextLevelPortal) mais
@@ -14,7 +14,7 @@ namespace TFModFortRiseSpeedRun
   // declenche OnEnter (une seule fois) : la logique de round s'occupe de la
   // victoire / des morts. Meme timing que l'original : 60 frames d'apparition
   // avant d'etre actif ("GO!").
-  public class SpeedRunGoalPortal : LevelEntity
+  public class ScrollGoalPortal : LevelEntity
   {
     private static readonly Color[] FlashColors = new Color[]
     {
@@ -32,7 +32,7 @@ namespace TFModFortRiseSpeedRun
     // Appele avec le premier joueur entre dans le portail.
     public Action<Player> OnEnter;
 
-    public SpeedRunGoalPortal(Vector2 position) : base(position)
+    public ScrollGoalPortal(Vector2 position) : base(position)
     {
       base.Collider = new Hitbox(16f, 16f, -8f, -8f);
       this.Collidable = false;
@@ -92,7 +92,7 @@ namespace TFModFortRiseSpeedRun
     {
       base.Update();
       if (base.Level.OnInterval(5))
-        this.colorIndex = (this.colorIndex + 1) % SpeedRunGoalPortal.FlashColors.Length;
+        this.colorIndex = (this.colorIndex + 1) % ScrollGoalPortal.FlashColors.Length;
 
       if (this.Collidable)
       {
@@ -126,7 +126,7 @@ namespace TFModFortRiseSpeedRun
       if (this.hudPercent > 0f)
       {
         float bob = this.sine.Value * 4f;
-        Color color = SpeedRunGoalPortal.FlashColors[this.colorIndex];
+        Color color = ScrollGoalPortal.FlashColors[this.colorIndex];
         Draw.OutlineTextJustify(TFGame.Font, "GO!", this.Position + new Vector2(1f, -25f + bob), color, Color.Black, new Vector2(0.5f, 1f), new Vector2(2f * this.hudPercent, 2f));
       }
     }
