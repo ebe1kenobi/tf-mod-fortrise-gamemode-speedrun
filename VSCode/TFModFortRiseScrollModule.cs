@@ -63,7 +63,7 @@ namespace TFModFortRiseScroll
         //Debugger.Launch(); // Proposera d’attacher Visual Studio
       }
       Instance = this;
-      //TFModFortRiseScroll.Logger.Init("TFModFortRiseScroll");
+      TFModFortRiseScroll.Logger.Init(logger);
 
       foreach (var registerable in Registerables)
       {
@@ -99,22 +99,22 @@ namespace TFModFortRiseScroll
       // Les deux mods cohabitent desormais : plus rien n'est retire ici.
       //
       // Le conflit ne portait que sur la propriete de la largeur d'ecran. Il est
-      // regle dans SpeedRunWideScreen, qui se retire du redimensionnement tant que
+      // regle dans ScrollWideScreen, qui se retire du redimensionnement tant que
       // WiderSet tient l'ecran en large (WiderSetOwnsScreen) - et comme sa largeur
       // vaut deja celle qu'on voulait, le round de Speed Run est large malgre tout.
       //
-      // DisableSpeedRunMode reste disponible plus bas si le besoin de retirer le mode
+      // DisableScrollMode reste disponible plus bas si le besoin de retirer le mode
       // se represente.
     }
 
-    // Retire l'entree SpeedRun du registre FortRise 5.
+    // Retire l'entree Scroll du registre FortRise 5.
     //
     // Contrairement a FortRise 4, aucune re-indexation n'est necessaire : l'identite
     // d'un mode est sa valeur Modes (stable, obtenue via EnumPool), pas sa position
     // dans VersusGameModes. GameModeRegistry.Register alimente exactement quatre
     // collections ; on defait ces quatre entrees. (GameModeTypes / GameModesMap ne
     // sont jamais peuplees pour les modes Versus en FortRise 5.)
-    private static void DisableSpeedRunMode()
+    private static void DisableScrollMode()
     {
       var entry = GameModeRegistry.VersusGameModes.FirstOrDefault(m => m.VersusGameMode is Scroll);
       if (entry == null)

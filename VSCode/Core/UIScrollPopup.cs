@@ -7,7 +7,7 @@ using TowerFall;
 namespace TFModFortRiseScroll
 {
   // Popup de reglage du mode Loop Scroll, ouverte avec Y depuis le bouton de mode
-  // (cf. MySpeedRunModeButton). Edite directement les ModuleSettings.
+  // (cf. MyScrollModeButton). Edite directement les ModuleSettings.
   public class UIScrollPopup : Entity
   {
     private class Field
@@ -49,9 +49,9 @@ namespace TFModFortRiseScroll
       fields.Add(new Field
       {
         Label = "SHAPE",
-        Value = () => s.SpeedRunShape == TFModFortRiseScrollSettings.ShapeSquare ? "SQUARE" : "HORIZONTAL",
-        Left = () => s.SpeedRunShape = 1 - s.SpeedRunShape,
-        Right = () => s.SpeedRunShape = 1 - s.SpeedRunShape
+        Value = () => s.ScrollShape == TFModFortRiseScrollSettings.ShapeSquare ? "SQUARE" : "HORIZONTAL",
+        Left = () => s.ScrollShape = 1 - s.ScrollShape,
+        Right = () => s.ScrollShape = 1 - s.ScrollShape
       });
 
       // Mode camera (3 valeurs) ; les options propres au scroll sont cachees en
@@ -60,61 +60,61 @@ namespace TFModFortRiseScroll
       fields.Add(new Field
       {
         Label = "CAMERA",
-        Value = () => camNames[Calc.Clamp(s.SpeedRunCamera, 0, camNames.Length - 1)],
-        Left = () => s.SpeedRunCamera = (s.SpeedRunCamera + camNames.Length - 1) % camNames.Length,
-        Right = () => s.SpeedRunCamera = (s.SpeedRunCamera + 1) % camNames.Length
+        Value = () => camNames[Calc.Clamp(s.ScrollCamera, 0, camNames.Length - 1)],
+        Left = () => s.ScrollCamera = (s.ScrollCamera + camNames.Length - 1) % camNames.Length,
+        Right = () => s.ScrollCamera = (s.ScrollCamera + 1) % camNames.Length
       });
-      Func<bool> scrollMode = () => s.SpeedRunCamera != TFModFortRiseScrollSettings.CameraFollowPlayers;
+      Func<bool> scrollMode = () => s.ScrollCamera != TFModFortRiseScrollSettings.CameraFollowPlayers;
 
-      Field speed = IntField("SPEED", () => s.SpeedRunSpeed, v => s.SpeedRunSpeed = v, 1, 30);
+      Field speed = IntField("SPEED", () => s.ScrollSpeed, v => s.ScrollSpeed = v, 1, 30);
       speed.Visible = scrollMode;
       fields.Add(speed);
 
       // Acceleration progressive du scroll (0 = OFF) ; l'intervalle n'apparait
       // que si l'acceleration est active.
-      Field accelAmount = IntField("ACCEL (+SPEED)", () => s.SpeedRunAccelAmount, v => s.SpeedRunAccelAmount = v, 0, 20);
-      accelAmount.Value = () => s.SpeedRunAccelAmount == 0 ? "OFF" : "+" + s.SpeedRunAccelAmount;
+      Field accelAmount = IntField("ACCEL (+SPEED)", () => s.ScrollAccelAmount, v => s.ScrollAccelAmount = v, 0, 20);
+      accelAmount.Value = () => s.ScrollAccelAmount == 0 ? "OFF" : "+" + s.ScrollAccelAmount;
       accelAmount.Visible = scrollMode;
       fields.Add(accelAmount);
 
-      Field accelEvery = IntField("ACCEL EVERY (s)", () => s.SpeedRunAccelEvery, v => s.SpeedRunAccelEvery = v, 1, 60);
-      accelEvery.Visible = () => scrollMode() && s.SpeedRunAccelAmount > 0;
+      Field accelEvery = IntField("ACCEL EVERY (s)", () => s.ScrollAccelEvery, v => s.ScrollAccelEvery = v, 1, 60);
+      accelEvery.Visible = () => scrollMode() && s.ScrollAccelAmount > 0;
       fields.Add(accelEvery);
 
-      fields.Add(IntField("LEVELS", () => s.SpeedRunMaxLevels, v => s.SpeedRunMaxLevels = v, 2, 30));
+      fields.Add(IntField("LEVELS", () => s.ScrollMaxLevels, v => s.ScrollMaxLevels = v, 2, 30));
 
       // Portail d'arrivee. Pas de notion de tour en follow players + square ->
       // le portail n'y existe pas, on cache l'option dans ce cas.
-      Field goal = BoolField("GOAL PORTAL", () => s.SpeedRunGoalPortal, v => s.SpeedRunGoalPortal = v);
-      goal.Visible = () => scrollMode() || s.SpeedRunShape == TFModFortRiseScrollSettings.ShapeHorizontal;
+      Field goal = BoolField("GOAL PORTAL", () => s.ScrollGoalPortal, v => s.ScrollGoalPortal = v);
+      goal.Visible = () => scrollMode() || s.ScrollShape == TFModFortRiseScrollSettings.ShapeHorizontal;
       fields.Add(goal);
 
-      Field laps = IntField("LAPS (SQUARE)", () => s.SpeedRunLaps, v => s.SpeedRunLaps = v, 1, 10);
-      laps.Visible = () => s.SpeedRunGoalPortal && s.SpeedRunShape == TFModFortRiseScrollSettings.ShapeSquare && scrollMode();
+      Field laps = IntField("LAPS (SQUARE)", () => s.ScrollLaps, v => s.ScrollLaps = v, 1, 10);
+      laps.Visible = () => s.ScrollGoalPortal && s.ScrollShape == TFModFortRiseScrollSettings.ShapeSquare && scrollMode();
       fields.Add(laps);
 
       // Coffres : nombre + respawn. Le contenu (types de pickup) se regle dans
       // les settings du mod FortRise.
-      fields.Add(IntField("TREASURES", () => s.SpeedRunTreasureCount, v => s.SpeedRunTreasureCount = v, 0, 20));
+      fields.Add(IntField("TREASURES", () => s.ScrollTreasureCount, v => s.ScrollTreasureCount = v, 0, 20));
 
-      Field tRespawn = IntField("CHEST RESPAWN (s)", () => s.SpeedRunTreasureRespawn, v => s.SpeedRunTreasureRespawn = v, 0, 60);
-      tRespawn.Value = () => s.SpeedRunTreasureRespawn == 0 ? "OFF" : s.SpeedRunTreasureRespawn.ToString();
-      tRespawn.Visible = () => s.SpeedRunTreasureCount > 0;
+      Field tRespawn = IntField("CHEST RESPAWN (s)", () => s.ScrollTreasureRespawn, v => s.ScrollTreasureRespawn = v, 0, 60);
+      tRespawn.Value = () => s.ScrollTreasureRespawn == 0 ? "OFF" : s.ScrollTreasureRespawn.ToString();
+      tRespawn.Visible = () => s.ScrollTreasureCount > 0;
       fields.Add(tRespawn);
 
-      Field leaveBehind = BoolField("LEAVE BEHIND", () => s.SpeedRunLeaveBehind, v => s.SpeedRunLeaveBehind = v);
+      Field leaveBehind = BoolField("LEAVE BEHIND", () => s.ScrollLeaveBehind, v => s.ScrollLeaveBehind = v);
       leaveBehind.Visible = scrollMode;
       fields.Add(leaveBehind);
 
-      Field offscreenDeath = IntField("OFFSCREEN DEATH (s)", () => s.SpeedRunOffscreenDeathDelay, v => s.SpeedRunOffscreenDeathDelay = v, 1, 15);
-      offscreenDeath.Visible = () => scrollMode() && s.SpeedRunLeaveBehind;
+      Field offscreenDeath = IntField("OFFSCREEN DEATH (s)", () => s.ScrollOffscreenDeathDelay, v => s.ScrollOffscreenDeathDelay = v, 1, 15);
+      offscreenDeath.Visible = () => scrollMode() && s.ScrollLeaveBehind;
       fields.Add(offscreenDeath);
 
-      fields.Add(BoolField("SAME SPAWN (RACE)", () => s.SpeedRunSameSpawn, v => s.SpeedRunSameSpawn = v));
-      fields.Add(BoolField("DISABLE ARROWS", () => s.SpeedRunNoArrows, v => s.SpeedRunNoArrows = v));
-      fields.Add(BoolField("DISABLE STOMP", () => s.SpeedRunNoStomp, v => s.SpeedRunNoStomp = v));
-      fields.Add(BoolField("INTRO ZOOM", () => s.SpeedRunIntroZoom, v => s.SpeedRunIntroZoom = v));
-      fields.Add(BoolField("WIDE SCREEN", () => s.SpeedRunWideScreen, v => s.SpeedRunWideScreen = v));
+      fields.Add(BoolField("SAME SPAWN (RACE)", () => s.ScrollSameSpawn, v => s.ScrollSameSpawn = v));
+      fields.Add(BoolField("DISABLE ARROWS", () => s.ScrollNoArrows, v => s.ScrollNoArrows = v));
+      fields.Add(BoolField("DISABLE STOMP", () => s.ScrollNoStomp, v => s.ScrollNoStomp = v));
+      fields.Add(BoolField("INTRO ZOOM", () => s.ScrollIntroZoom, v => s.ScrollIntroZoom = v));
+      fields.Add(BoolField("WIDE SCREEN", () => s.ScrollWideScreen, v => s.ScrollWideScreen = v));
     }
 
     private static Field BoolField(string label, Func<bool> get, Action<bool> set)

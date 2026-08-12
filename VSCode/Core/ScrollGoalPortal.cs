@@ -10,7 +10,7 @@ namespace TFModFortRiseScroll
   // autonome (aucune dependance a DarkWorldControl/DarkWorldState).
   //
   // Apparait au bout du parcours (horizontal) ou apres N tours (square), cf.
-  // SpeedRunRoundLogic.UpdateGoalPortal. Le premier joueur qui le touche
+  // ScrollRoundLogic.UpdateGoalPortal. Le premier joueur qui le touche
   // declenche OnEnter (une seule fois) : la logique de round s'occupe de la
   // victoire / des morts. Meme timing que l'original : 60 frames d'apparition
   // avant d'etre actif ("GO!").

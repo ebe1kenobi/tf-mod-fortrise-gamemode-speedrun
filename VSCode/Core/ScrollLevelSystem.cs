@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Xml;
 using Microsoft.Xna.Framework;
 using Monocle;
+using MonoMod.Utils;
 using TowerFall;
 
 namespace TFModFortRiseScroll
@@ -25,7 +26,7 @@ namespace TFModFortRiseScroll
     }
 
     // Dimensions du niveau combine courant, en tuiles. Lues par les hooks de
-    // rendu (SpeedRunRenderPatches : Calc.GetBitData/ReadCSVIntGrid, Tilemap.ctor).
+    // rendu (ScrollRenderPatches : Calc.GetBitData/ReadCSVIntGrid, Tilemap.ctor).
     public static int WidthTiles = ScrollLevelBuilder.BLOCK_W;
     public static int HeightTiles = ScrollLevelBuilder.BLOCK_H;
 
@@ -33,7 +34,7 @@ namespace TFModFortRiseScroll
     public static int TotalWidthPixels = 320;
     public static int TotalHeightPixels = 240;
 
-    // Grille de blocs et forme du parcours (lus par SpeedRunRoundLogic pour
+    // Grille de blocs et forme du parcours (lus par ScrollRoundLogic pour
     // piloter la camera).
     public static int GridCols = 1;
     public static int GridRows = 1;
@@ -75,11 +76,11 @@ namespace TFModFortRiseScroll
         ordered.Add(paths[(start + i) % paths.Count]);
 
       // Limite au nombre de levels demande dans les settings.
-      int maxLevels = TFModFortRiseScrollModule.Settings.SpeedRunMaxLevels;
+      int maxLevels = TFModFortRiseScrollModule.Settings.ScrollMaxLevels;
       if (maxLevels > 0 && ordered.Count > maxLevels)
         ordered = ordered.GetRange(0, maxLevels);
 
-      bool square = TFModFortRiseScrollModule.Settings.SpeedRunShape == TFModFortRiseScrollSettings.ShapeSquare
+      bool square = TFModFortRiseScrollModule.Settings.ScrollShape == TFModFortRiseScrollSettings.ShapeSquare
                     && ordered.Count >= 4;
 
       List<Placement> placements = square
@@ -94,6 +95,20 @@ namespace TFModFortRiseScroll
       TotalWidthPixels = WidthTiles * 10;
       TotalHeightPixels = HeightTiles * 10;
 
+      // Le level "courant", tel que le jeu le retient.
+      //
+      // Le GetNextRoundLevel vanilla termine par "this.lastLevel = this.levels[0]",
+      // et ce champ prive n'est pas decoratif : FortRise le relit au chargement de
+      // CHAQUE niveau modde (Level.InitializeModdedLevel) pour savoir quel dossier
+      // surveiller, et le passe tel quel comme cle de dictionnaire. Cette surcharge
+      // ne rappelant jamais la version vanilla, le champ restait null - et la moindre
+      // tour non officielle, celles du mod WiderSet par exemple, faisait tomber le
+      // chargement sur un ArgumentNullException.
+      //
+      // Le niveau combine n'existe dans aucun fichier : on retient le premier des
+      // levels assembles, qui est un vrai .oel du bon dossier.
+      SetLastLevel(ordered[0]);
+
       // Seed aleatoire comme le fait le loader vanilla pour les tours procedurales.
       bool procedural = this.VersusTowerData.Procedural;
       if (procedural)
@@ -102,6 +117,31 @@ namespace TFModFortRiseScroll
       if (procedural)
         Calc.PopRandom();
       return combined;
+    }
+
+    /// <summary>
+    /// Renseigne le champ prive <c>lastLevel</c> de VersusLevelSystem.
+    ///
+    /// Prive et sans accesseur : DynamicData est le seul moyen d'y ecrire. Un echec
+    /// est avale - on retomberait sur le comportement d'avant, pas pire - mais il
+    /// est journalise, parce qu'il ramenerait le crash au chargement.
+    /// </summary>
+    private void SetLastLevel(string path)
+    {
+      if (string.IsNullOrEmpty(path))
+      {
+        return;
+      }
+
+      try
+      {
+        using var data = DynamicData.For(this);
+        data.Set("lastLevel", path);
+      }
+      catch (Exception e)
+      {
+        Logger.Error("ScrollLevelSystem.SetLastLevel: " + e.Message);
+      }
     }
 
     // Bande horizontale : une rangee, chaque level dans sa colonne.

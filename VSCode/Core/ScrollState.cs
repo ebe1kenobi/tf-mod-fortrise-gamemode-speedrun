@@ -1,7 +1,7 @@
 namespace TFModFortRiseScroll
 {
-  // Etat partage du scroll courant, mis a jour chaque frame par SpeedRunRoundLogic
-  // et lu par les patches de wrap (SpeedRunWrapPatches) et le clamp.
+  // Etat partage du scroll courant, mis a jour chaque frame par ScrollRoundLogic
+  // et lu par les patches de wrap (ScrollWrapPatches) et le clamp.
   //
   // Wrap et mur invisible sont DIRECTIONNELS, derives de la velocite caméra :
   //   - Axe qui bouge (DirX/DirY != 0) -> mur invisible (clamp), pas de wrap.

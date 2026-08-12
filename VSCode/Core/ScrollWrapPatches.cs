@@ -46,13 +46,13 @@ namespace TFModFortRiseScroll
     // Position : aucune teleportation aux frontieres 320/240.
     private static bool EnforceScreenWrap_patch()
     {
-      return !ScrollRenderPatches.IsSpeedRunActive();
+      return !ScrollRenderPatches.IsScrollActive();
     }
 
     // Collision : une seule hitbox reelle, pas de fantomes a +/-320/240.
     private static bool BuildHitList_patch(WrapHitbox __instance, List<Rectangle> hitList)
     {
-      if (!ScrollRenderPatches.IsSpeedRunActive())
+      if (!ScrollRenderPatches.IsScrollActive())
         return true;
 
       hitList.Clear();
@@ -64,7 +64,7 @@ namespace TFModFortRiseScroll
     // ferait tester la collision dans le mauvais bloc).
     private static bool ApplyWrapX_patch(float x, ref float __result)
     {
-      if (ScrollRenderPatches.IsSpeedRunActive())
+      if (ScrollRenderPatches.IsScrollActive())
       {
         __result = x;
         return false;
@@ -74,7 +74,7 @@ namespace TFModFortRiseScroll
 
     private static bool ApplyWrapY_patch(float y, ref float __result)
     {
-      if (ScrollRenderPatches.IsSpeedRunActive())
+      if (ScrollRenderPatches.IsScrollActive())
       {
         __result = y;
         return false;
@@ -85,7 +85,7 @@ namespace TFModFortRiseScroll
     // Rendu : une seule copie, pas de rendus fantomes decales de +/-320/240.
     private static bool Render_patch(LevelEntity __instance)
     {
-      if (!ScrollRenderPatches.IsSpeedRunActive())
+      if (!ScrollRenderPatches.IsScrollActive())
         return true;
 
       __instance.DoWrapRender();
@@ -96,7 +96,7 @@ namespace TFModFortRiseScroll
     // ajoute des halos a +/-320/240 en dur quand ScreenWrap est actif).
     private static bool DrawLight_patch(LevelEntity __instance, LightingLayer layer)
     {
-      if (!ScrollRenderPatches.IsSpeedRunActive())
+      if (!ScrollRenderPatches.IsScrollActive())
         return true;
 
       layer.DrawLight(__instance.Position, __instance.LightRadius, layer.Sine, __instance.LightColor * __instance.LightAlpha);

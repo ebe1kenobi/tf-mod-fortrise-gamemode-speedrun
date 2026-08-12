@@ -1,3 +1,4 @@
+using System;
 using System.Xml;
 using FortRise;
 using HarmonyLib;
@@ -50,43 +51,18 @@ namespace TFModFortRiseScroll
           AccessTools.DeclaredConstructor(typeof(MainMenu), [typeof(MainMenu.MenuState)]),
           prefix: new HarmonyMethod(MainMenuCtor_patch)
       );
-
-      // Reparation d'un defaut de Monocle, appliquee quel que soit l'appelant et
-      // meme si le wide-screen de ce mod est desactive : voir Resize_postfix.
-      harmony.Patch(
-          AccessTools.DeclaredMethod(typeof(Screen), nameof(Screen.Resize)),
-          postfix: new HarmonyMethod(Resize_postfix)
-      );
     }
 
-    /// <summary>
-    /// Repare Monocle.Screen.Resize, qui ecrit "this.width = width; this.width =
-    /// height;" - height n'est jamais affecte et width est ecrase par la hauteur.
-    ///
-    /// ScaledWidth en decoule, et avec lui le centrage DrawRect.X calcule dans
-    /// HandleWindowedViewport : apres tout redimensionnement, l'image est decalee
-    /// horizontalement.
-    ///
-    /// Ce correctif etait auparavant applique dans ResizeScreen, donc seulement quand
-    /// ce mod redimensionnait lui-meme. Or il se met en retrait quand WiderSet est
-    /// present (Disabled), et WiderSet appelle Resize de son cote : la combinaison des
-    /// deux mods laissait le defaut sans reparation, d'ou l'ecran decale. Le corriger
-    /// sur Resize repare tous les appelants, y compris ceux qu'on ne connait pas.
-    /// </summary>
-    private static void Resize_postfix(Screen __instance, int width, int height)
-    {
-      var dyn = DynamicData.For(__instance);
-      dyn.Set("width", width);
-      dyn.Set("height", height);
-
-      // Le centrage a ete calcule avec les mauvaises valeurs : on le refait.
-      if (__instance.IsFullscreen)
-        __instance.HandleFullscreenViewport();
-      else
-        dyn.Invoke("SetWindowSize", __instance.ScaledWidth, __instance.ScaledHeight);
-
-      dyn.Dispose();
-    }
+    // NOTE : ce fichier reparait autrefois Monocle.Screen.Resize, qui ecrivait
+    // "this.width = width; this.width = height;" - la hauteur ecrasait la largeur, et
+    // le centrage DrawRect.X qui en decoule laissait l'image decalee.
+    //
+    // FortRise le corrige desormais LUI-MEME, dans l'IL de Resize
+    // (MonoModRules.PatchScreenResize, depuis 5.3.3). Garder la reparation par-dessus
+    // ne la rendait pas plus juste : elle rejouait le centrage APRES coup, sur tous
+    // les appelants - y compris WiderSet - et c'est ce second passage qui laissait
+    // l'ecran decale quand les deux mods redimensionnaient. On laisse donc faire
+    // FortRise.
 
     // Le decor (Background) ne couvre que 320px de large ; au-dela le canvas
     // n'est pas nettoye (contenu residuel). On nettoie le render target d'ecran en
@@ -147,10 +123,26 @@ namespace TFModFortRiseScroll
       }
     }
 
+    /// <summary>
+    /// Vrai quand c'est CE mod qui a elargi l'ecran.
+    ///
+    /// Sans ce drapeau, "remettre 320" voulait dire "remettre 320 quoi qu'il arrive",
+    /// y compris sur un ecran elargi par WiderSet. Les deux mods se reprenaient alors
+    /// la largeur a tour de role, chacun recalculant le centrage sur une largeur que
+    /// l'autre venait de changer - d'ou l'image decalee. On ne defait plus que ce
+    /// qu'on a fait soi-meme.
+    /// </summary>
+    private static bool widenedByUs;
+
     private static void RestoreScreen()
     {
-      if (IsWide)
-        ResizeScreen(NORMAL_WIDTH);
+      if (!widenedByUs)
+      {
+        return;
+      }
+
+      ResizeScreen(NORMAL_WIDTH);
+      widenedByUs = false;
     }
 
     private static void ResizeScreen(int width)
@@ -159,9 +151,41 @@ namespace TFModFortRiseScroll
       if (screen == null || screen.Width == width)
         return;
 
-      // La correction des champs prives de Screen et le recalcul du centrage se font
-      // maintenant dans Resize_postfix, pour tous les appelants et non seulement ici.
+      Report("avant", screen);
+
+      // Le champ prive et le recentrage sont l'affaire de Resize lui-meme : FortRise
+      // en corrige l'IL depuis 5.3.3, il n'y a plus rien a rattraper apres coup.
       screen.Resize(width, 240, screen.Scale);
+
+      Report("apres", screen);
+    }
+
+    /// <summary>
+    /// Etat de l'ecran de part et d'autre d'un redimensionnement.
+    ///
+    /// L'image revenait decalee vers la droite au retour au menu, et le centrage
+    /// (DrawRect.X) se calcule a partir de trois valeurs qu'on ne peut pas deviner de
+    /// l'exterieur : la largeur de fenetre, la largeur mise a l'echelle, et le
+    /// viewport. On les ecrit, plutot que de raisonner a l'aveugle.
+    /// </summary>
+    private static void Report(string when, Screen screen)
+    {
+      try
+      {
+        using var data = DynamicData.For(screen);
+        var drawRect = (Rectangle)data.Get("DrawRect");
+        var viewport = data.Get("viewport");
+        int viewportWidth = viewport == null ? -1 : (int)viewport.GetType().GetProperty("Width").GetValue(viewport);
+
+        Logger.Info($"[Ecran] {when} : rendu {screen.Width}x{screen.Height}, echelle {screen.Scale}, "
+            + $"mis a l'echelle {screen.ScaledWidth}x{screen.ScaledHeight}, "
+            + $"DrawRect.X {drawRect.X} (l={drawRect.Width}), viewport.W {viewportWidth}, "
+            + $"plein ecran {screen.IsFullscreen}");
+      }
+      catch (Exception e)
+      {
+        Logger.Error("[Ecran] etat illisible : " + e.Message);
+      }
     }
 
     // Largeur decidee au chargement de CHAQUE round : garantit qu'un match dans
@@ -176,12 +200,16 @@ namespace TFModFortRiseScroll
       }
 
       bool wantWide = session != null
-                   && ScrollRenderPatches.IsSpeedRunMode(session.MatchSettings)
-                   && TFModFortRiseScrollModule.Settings.SpeedRunWideScreen;
+                   && ScrollRenderPatches.IsScrollMode(session.MatchSettings)
+                   && TFModFortRiseScrollModule.Settings.ScrollWideScreen;
       if (wantWide)
+      {
         ResizeScreen(WIDE_WIDTH);
-      else
-        RestoreScreen();
+        widenedByUs = true;
+        return;
+      }
+
+      RestoreScreen();
     }
 
     // Le render target du niveau est cree en 320x240 en dur : l'elargir.

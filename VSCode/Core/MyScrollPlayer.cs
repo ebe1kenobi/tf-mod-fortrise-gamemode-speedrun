@@ -46,18 +46,18 @@ namespace TFModFortRiseScroll
     private static bool HUDRender_patch(Player __instance, bool wrapped)
     {
       // false => on saute l'original (pas de rendu HUD wrappe en Speed Run).
-      return !(wrapped && IsSpeedRun(__instance));
+      return !(wrapped && IsScroll(__instance));
     }
 
-    private static bool IsSpeedRun(Player self)
+    private static bool IsScroll(Player self)
     {
       MatchSettings ms = self?.Level?.Session?.MatchSettings;
-      return ScrollRenderPatches.IsSpeedRunMode(ms);
+      return ScrollRenderPatches.IsScrollMode(ms);
     }
 
     private static void Added_patch(Player __instance)
     {
-      if (!IsSpeedRun(__instance) || !TFModFortRiseScrollModule.Settings.SpeedRunSameSpawn)
+      if (!IsScroll(__instance) || !TFModFortRiseScrollModule.Settings.ScrollSameSpawn)
         return;
 
       var spawns = __instance.Level.GetXMLPositions("PlayerSpawn");
@@ -73,7 +73,7 @@ namespace TFModFortRiseScroll
 
     private static void Update_prefix_patch(Player __instance, ref UpdateState __state)
     {
-      __state.Active = IsSpeedRun(__instance) && TFModFortRiseScrollModule.Settings.SpeedRunNoArrows;
+      __state.Active = IsScroll(__instance) && TFModFortRiseScrollModule.Settings.ScrollNoArrows;
       if (__state.Active)
       {
         __state.PreviousShootLock = Player.ShootLock;
@@ -89,7 +89,7 @@ namespace TFModFortRiseScroll
 
     private static bool HurtBouncedOn_patch(Player __instance, int bouncerIndex)
     {
-      if (IsSpeedRun(__instance) && TFModFortRiseScrollModule.Settings.SpeedRunNoStomp)
+      if (IsScroll(__instance) && TFModFortRiseScrollModule.Settings.ScrollNoStomp)
         return false; // pas de degat quand on saute sur la tete
       return true;
     }

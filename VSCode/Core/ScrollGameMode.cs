@@ -12,32 +12,32 @@ namespace TFModFortRiseScroll
   // automatiquement par scan d'assembly.
   // FortRise 5 : implémentation de IVersusGameMode + enregistrement explicite via
   // registry.GameModes.RegisterVersusGameMode. L'entrée retournée porte la valeur
-  // Modes qui sert à reconnaître le mode (SpeedRunEntry.Modes).
+  // Modes qui sert à reconnaître le mode (ScrollEntry.Modes).
   //
   // Etape actuelle (fondation) : le mode se comporte comme un Last Man Standing
   // classique sur un level normal. La concaténation des levels et le scrolling
-  // caméra sont branchés par SpeedRunLevelSystem + SpeedRunRoundLogic.
+  // caméra sont branchés par ScrollLevelSystem + ScrollRoundLogic.
   public class Scroll : IVersusGameMode, IRegisterable
   {
-    private static ISubtextureEntry SpeedRunIcon { get; set; } = null!;
-    public static IVersusGameModeEntry SpeedRunEntry { get; private set; } = null!;
+    private static ISubtextureEntry ScrollIcon { get; set; } = null!;
+    public static IVersusGameModeEntry ScrollEntry { get; private set; } = null!;
 
     public string Name => "Speed Run";
     public Color NameColor => Color.Orange;
-    public ISubtextureEntry Icon => SpeedRunIcon;
+    public ISubtextureEntry Icon => ScrollIcon;
     public bool IsTeamMode => false;
 
     public static void Register(IModContent content, IModRegistry registry)
     {
       // Pas de texture embarquée : on réutilise l'icône vanilla (comme en FR4).
       // Callback résolu paresseusement, une fois les atlas chargés.
-      SpeedRunIcon = registry.Subtextures.RegisterTexture(
-          "gameModes/speedRun",
+      ScrollIcon = registry.Subtextures.RegisterTexture(
+          "gameModes/Scroll",
           () => TFGame.MenuAtlas["gameModes/warlord"],
           SubtextureAtlasDestination.MenuAtlas
       );
 
-      SpeedRunEntry = registry.GameModes.RegisterVersusGameMode(new Scroll());
+      ScrollEntry = registry.GameModes.RegisterVersusGameMode(new Scroll());
     }
 
     public int OverrideCoinOffset(Session session)

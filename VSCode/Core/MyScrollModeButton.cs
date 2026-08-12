@@ -33,9 +33,9 @@ namespace TFModFortRiseScroll
       return !UIScrollPopup.IsOpen;
     }
 
-    private static bool IsSpeedRunSelected()
+    private static bool IsScrollSelected()
     {
-      return ScrollRenderPatches.IsSpeedRunMode(MainMenu.VersusMatchSettings);
+      return ScrollRenderPatches.IsScrollMode(MainMenu.VersusMatchSettings);
     }
 
     private static bool AnyPlayerArrowsPressed()
@@ -51,7 +51,7 @@ namespace TFModFortRiseScroll
 
     private static bool Update_patch(VersusModeButton __instance)
     {
-      if (IsSpeedRunSelected() && __instance.Selected && !UIScrollPopup.IsOpen && AnyPlayerArrowsPressed())
+      if (IsScrollSelected() && __instance.Selected && !UIScrollPopup.IsOpen && AnyPlayerArrowsPressed())
       {
         if (__instance.Scene != null)
         {
@@ -65,7 +65,7 @@ namespace TFModFortRiseScroll
 
     private static void Render_patch(VersusModeButton __instance)
     {
-      if (!__instance.Selected || UIScrollPopup.IsOpen || !IsSpeedRunSelected())
+      if (!__instance.Selected || UIScrollPopup.IsOpen || !IsScrollSelected())
         return;
 
       Vector2 hintPos = __instance.Position + new Vector2(0f, 22f);

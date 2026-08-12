@@ -43,7 +43,7 @@ namespace TFModFortRiseScroll
     public override void OnRoundStart()
     {
       base.OnRoundStart();
-      SpawnSpeedRunTreasures();
+      SpawnScrollTreasures();
       this.scrollInit = false;
       this.offscreenTimer = new float[TFGame.Players.Length];
       this.playerDetached = new bool[TFGame.Players.Length];
@@ -119,7 +119,7 @@ namespace TFModFortRiseScroll
     private const float PLAYER_FEET = 8f;
 
     private static bool FollowPlayersMode =>
-      TFModFortRiseScrollModule.Settings.SpeedRunCamera == TFModFortRiseScrollSettings.CameraFollowPlayers;
+      TFModFortRiseScrollModule.Settings.ScrollCamera == TFModFortRiseScrollSettings.CameraFollowPlayers;
 
     private bool scrollInit;
     private bool loopMode;
@@ -320,7 +320,7 @@ namespace TFModFortRiseScroll
 
       // Option desactivee : pas de vue d'ensemble ni d'animation, la camera se
       // place directement sur la fenetre de depart.
-      if (!TFModFortRiseScrollModule.Settings.SpeedRunIntroZoom)
+      if (!TFModFortRiseScrollModule.Settings.ScrollIntroZoom)
       {
         zoomStarted = true;
         zoomInT = 1f;
@@ -382,18 +382,18 @@ namespace TFModFortRiseScroll
       // Acceleration progressive : toutes les N secondes, +amount dixiemes de
       // px/frame sur la vitesse de base (plafonnee a MAX_SPEED_TENTHS).
       scrollTime += Engine.TimeMult;
-      float speedTenths = TFModFortRiseScrollModule.Settings.SpeedRunSpeed;
-      int accelAmount = TFModFortRiseScrollModule.Settings.SpeedRunAccelAmount;
+      float speedTenths = TFModFortRiseScrollModule.Settings.ScrollSpeed;
+      int accelAmount = TFModFortRiseScrollModule.Settings.ScrollAccelAmount;
       if (accelAmount > 0)
       {
-        int accelEvery = Math.Max(1, TFModFortRiseScrollModule.Settings.SpeedRunAccelEvery);
+        int accelEvery = Math.Max(1, TFModFortRiseScrollModule.Settings.ScrollAccelEvery);
         speedTenths += accelAmount * (float)Math.Floor(scrollTime / (accelEvery * 60f));
         if (speedTenths > MAX_SPEED_TENTHS)
           speedTenths = MAX_SPEED_TENTHS;
       }
       float baseSpeed = speedTenths / 10f * Engine.TimeMult;
-      bool followLeader = false; //TFModFortRiseScrollModule.Settings.SpeedRunCamera == TFModFortRiseScrollSettings.CameraFollowLeader;
-      bool leaveBehind = TFModFortRiseScrollModule.Settings.SpeedRunLeaveBehind;
+      bool followLeader = false; //TFModFortRiseScrollModule.Settings.ScrollCamera == TFModFortRiseScrollSettings.CameraFollowLeader;
+      bool leaveBehind = TFModFortRiseScrollModule.Settings.ScrollLeaveBehind;
 
       int dirX, dirY;
       if (loopMode)
@@ -525,13 +525,13 @@ namespace TFModFortRiseScroll
     // dedans gagne le round, les autres meurent.
     //   - HORIZONTAL : au centre du dernier ecran de la bande ; spawn quand le
     //     bout du parcours entre dans la fenetre visible (tous modes camera).
-    //   - SQUARE : apres SpeedRunLaps tours complets, au point de depart du
+    //   - SQUARE : apres ScrollLaps tours complets, au point de depart du
     //     parcours (la ou la camera se trouve au moment du bouclage). Pas de
     //     notion de tour en follow players -> pas de portail dans ce cas.
     // ------------------------------------------------------------------
     private void UpdateGoalPortal(Level level)
     {
-      if (!TFModFortRiseScrollModule.Settings.SpeedRunGoalPortal || goalReached || goalPortal != null)
+      if (!TFModFortRiseScrollModule.Settings.ScrollGoalPortal || goalReached || goalPortal != null)
         return;
 
       Vector2? pos = null;
@@ -542,7 +542,7 @@ namespace TFModFortRiseScroll
         if (camX + WinW >= portalX + 8f)
           pos = FindFreeSpot(level, portalX, camY + 120f);
       }
-      else if (lapsDone >= Math.Max(1, TFModFortRiseScrollModule.Settings.SpeedRunLaps))
+      else if (lapsDone >= Math.Max(1, TFModFortRiseScrollModule.Settings.ScrollLaps))
       {
         // Anneau : point de depart du parcours (fenetre (0,0)).
         pos = FindFreeSpot(level, WinW / 2f, 120f);
@@ -603,12 +603,12 @@ namespace TFModFortRiseScroll
     // ------------------------------------------------------------------
     // Coffres : spawner custom (remplace SpawnTreasureChestsVersus).
     //   - Positions : emplacements TreasureChest/BigTreasureChest des XML des
-    //     levels sources (recopies avec offset par SpeedRunLevelSystem).
-    //   - Nombre : SpeedRunTreasureCount (0 = aucun).
+    //     levels sources (recopies avec offset par ScrollLevelSystem).
+    //   - Nombre : ScrollTreasureCount (0 = aucun).
     //   - Contenu : pioche au hasard parmi les pickups activees dans les
     //     settings du mod (GetEnabledTreasurePickups).
     //   - Respawn : un coffre ouvert reapparait au meme endroit apres
-    //     SpeedRunTreasureRespawn secondes (0 = off), avec un nouveau contenu.
+    //     ScrollTreasureRespawn secondes (0 = off), avec un nouveau contenu.
     // ------------------------------------------------------------------
     private class TreasureSlot
     {
@@ -622,13 +622,13 @@ namespace TFModFortRiseScroll
     private List<TreasureSlot> treasureSlots;
     private List<Pickups> treasurePool;
 
-    private void SpawnSpeedRunTreasures()
+    private void SpawnScrollTreasures()
     {
       treasureSlots = new List<TreasureSlot>();
       Level level = base.Session.CurrentLevel;
       if (level == null || !level.CanSpawnTreasure || base.Session.MatchSettings.Variants.NoTreasure)
         return;
-      int count = TFModFortRiseScrollModule.Settings.SpeedRunTreasureCount;
+      int count = TFModFortRiseScrollModule.Settings.ScrollTreasureCount;
       if (count <= 0)
         return;
       treasurePool = BuildTreasurePool();
@@ -669,7 +669,7 @@ namespace TFModFortRiseScroll
     {
       if (treasureSlots == null || treasurePool == null || treasurePool.Count == 0)
         return;
-      int respawnSec = TFModFortRiseScrollModule.Settings.SpeedRunTreasureRespawn;
+      int respawnSec = TFModFortRiseScrollModule.Settings.ScrollTreasureRespawn;
       if (respawnSec <= 0)
         return;
 
@@ -832,7 +832,7 @@ namespace TFModFortRiseScroll
     {
       if (offscreenTimer == null)
         return;
-      float threshold = TFModFortRiseScrollModule.Settings.SpeedRunOffscreenDeathDelay * 60f;
+      float threshold = TFModFortRiseScrollModule.Settings.ScrollOffscreenDeathDelay * 60f;
 
       foreach (Entity e in level.Players)
       {

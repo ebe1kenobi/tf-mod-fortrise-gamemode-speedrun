@@ -8,7 +8,7 @@ namespace TFModFortRiseScroll
   // entite taggee Solid donne au joueur toute la physique normale contre le
   // bord de l'ecran : wall-jump / rebond sur les cotes, etat "au sol" (donc
   // saut possible) quand le bord bas le retient au-dessus d'un trou.
-  // Repositionne chaque frame par SpeedRunRoundLogic ; le haut de l'ecran
+  // Repositionne chaque frame par ScrollRoundLogic ; le haut de l'ecran
   // reste ouvert (un saut au-dessus retombe tout seul).
   internal class ScrollEdgeWall : Solid
   {
