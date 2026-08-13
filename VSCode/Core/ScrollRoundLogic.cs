@@ -78,7 +78,9 @@ namespace TFModFortRiseScroll
       }
     }
 
-    // Largeur de la fenetre visible (320 normal, plus si option "wide screen").
+    // Largeur de la fenetre visible : 320 en temps normal, davantage quand le mod
+    // WiderSet elargit le jeu. On lit l'ecran plutot que de supposer, ce mod ne
+    // decidant plus lui-meme de sa largeur.
     private static float WinW
     {
       get
@@ -295,8 +297,8 @@ namespace TFModFortRiseScroll
     }
 
     // Le jeu dessine une barre noire de 2px (Level.CoreRender) quand Camera.X/Y != 0,
-    // gardee par `Camera.Origin == Vector2.Zero`. En wide-screen elle tombe en plein
-    // milieu. On met une origine minuscule non nulle : le test echoue (barre non
+    // gardee par `Camera.Origin == Vector2.Zero`. Sur un ecran elargi elle tombe en
+    // plein milieu. On met une origine minuscule non nulle : le test echoue (barre non
     // dessinee) mais la vue ne bouge pas (l'origine est castee en int dans la matrice).
     private static void KillVanillaBorder(Level level)
     {

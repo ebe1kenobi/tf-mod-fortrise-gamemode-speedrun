@@ -7,17 +7,73 @@ namespace TFModFortRiseScroll
 {
   // Utilitaires de parsing/assemblage des grilles de tuiles d'un level TowerFall.
   //
-  // Un level Versus fait 32x24 tuiles :
+  // Un level Versus ordinaire fait 32x24 tuiles :
   //   - Solids / BG      : bitstring (24 lignes de 32 caractères '0'/'1')
   //   - SolidTiles / BGTiles : CSV d'entiers (-1 = pas de tuile), potentiellement
   //     "TrimmedCSV" (lignes/colonnes de -1 en fin omises) -> on re-complete.
   //
-  // Ces helpers normalisent chaque level source en grille pleine 32x24 puis
-  // assemblent une grande grille en plaçant les blocs à des offsets (col,row).
+  // Mais pas TOUS : les levels larges du mod WiderSet font 42x24 (420 px). La taille
+  // d'un bloc n'est donc pas une constante, elle se LIT dans le level lui-meme (voir
+  // Detect). Les blocs d'une meme tour ayant tous la meme taille, une seule lecture
+  // suffit pour toute une manche.
+  //
+  // Ces helpers normalisent chaque level source en grille pleine de la taille d'un
+  // bloc, puis assemblent une grande grille en plaçant les blocs a des offsets
+  // (col,row).
   internal static class ScrollLevelBuilder
   {
-    public const int BLOCK_W = 32; // tuiles par bloc (largeur)
-    public const int BLOCK_H = 24; // tuiles par bloc (hauteur)
+    // Taille d'un bloc, en tuiles. Valeurs par defaut = level Versus ordinaire ;
+    // Detect les remplace au debut de chaque assemblage.
+    public static int BLOCK_W = 32;
+    public static int BLOCK_H = 24;
+
+    /// <summary>
+    /// Lit la taille d'un bloc dans un level source.
+    ///
+    /// L'attribut <c>width</c> du level fait foi - c'est celui que l'editeur ecrit,
+    /// en PIXELS - et le bitstring des solides sert de recours : la longueur de sa
+    /// premiere ligne est la largeur en tuiles. Sans l'un ni l'autre, on garde
+    /// 32x24, ce qui etait le seul cas gere jusqu'ici.
+    /// </summary>
+    public static void Detect(XmlElement level)
+    {
+      BLOCK_W = 32;
+      BLOCK_H = 24;
+
+      if (level == null)
+      {
+        return;
+      }
+
+      int width = AttrInt(level, "width");
+      int height = AttrInt(level, "height");
+
+      if (width > 0 && height > 0)
+      {
+        BLOCK_W = width / 10;
+        BLOCK_H = height / 10;
+        return;
+      }
+
+      string bits = level["Solids"]?.InnerText;
+      if (string.IsNullOrEmpty(bits))
+      {
+        return;
+      }
+
+      string[] lines = bits.Replace("\r", "").Trim().Split('\n');
+      if (lines.Length > 0 && lines[0].Trim().Length > 0)
+      {
+        BLOCK_W = lines[0].Trim().Length;
+        BLOCK_H = lines.Length;
+      }
+    }
+
+    private static int AttrInt(XmlElement element, string name)
+    {
+      string raw = element.GetAttribute(name);
+      return int.TryParse(raw, out int value) ? value : 0;
+    }
 
     // Parse un bitstring en grille bool[BLOCK_H][BLOCK_W], complétée par 'false'.
     public static bool[][] ParseBits(string data)
@@ -113,19 +169,35 @@ namespace TFModFortRiseScroll
           dest[rowOff + y][colOff + x] = true;
     }
 
-    // Ferme le grand niveau par un cadre solide de `thickness` tuiles (haut, bas,
-    // gauche, droite) : bouche les trous du haut/bas (plus de wrap vertical) et
-    // ferme les murs qui delimitent le niveau.
-    public static void FillSolidBorder(bool[][] dest, int thickness)
+    /// <summary>
+    /// Ferme le grand niveau par un cadre solide de <paramref name="thickness"/>
+    /// tuiles.
+    ///
+    /// Les deux cotes ne se decident pas ensemble : en BANDE, le haut et le bas
+    /// restent ouverts pour que le wrap vertical ait un sens - tomber par le bas doit
+    /// ramener par le haut - alors qu'en ANNEAU tout est clos, wrap compris, et le
+    /// moindre trou au plafond ferait sortir du parcours.
+    /// </summary>
+    /// <param name="sides">Fermer les bords gauche et droit.</param>
+    /// <param name="topBottom">Fermer le plafond et le sol.</param>
+    public static void FillSolidBorder(bool[][] dest, int thickness, bool sides, bool topBottom)
     {
       int rows = dest.Length;
       if (rows == 0 || thickness <= 0)
         return;
+
       int cols = dest[0].Length;
       for (int y = 0; y < rows; y++)
+      {
         for (int x = 0; x < cols; x++)
-          if (y < thickness || y >= rows - thickness || x < thickness || x >= cols - thickness)
+        {
+          bool onTopBottom = y < thickness || y >= rows - thickness;
+          bool onSide = x < thickness || x >= cols - thickness;
+
+          if ((topBottom && onTopBottom) || (sides && onSide))
             dest[y][x] = true;
+        }
+      }
     }
 
     public static string BitsToString(bool[][] grid)

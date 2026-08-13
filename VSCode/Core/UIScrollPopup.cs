@@ -114,7 +114,6 @@ namespace TFModFortRiseScroll
       fields.Add(BoolField("DISABLE ARROWS", () => s.ScrollNoArrows, v => s.ScrollNoArrows = v));
       fields.Add(BoolField("DISABLE STOMP", () => s.ScrollNoStomp, v => s.ScrollNoStomp = v));
       fields.Add(BoolField("INTRO ZOOM", () => s.ScrollIntroZoom, v => s.ScrollIntroZoom = v));
-      fields.Add(BoolField("WIDE SCREEN", () => s.ScrollWideScreen, v => s.ScrollWideScreen = v));
     }
 
     private static Field BoolField(string label, Func<bool> get, Action<bool> set)
@@ -226,7 +225,7 @@ namespace TFModFortRiseScroll
     public override void Render()
     {
       Draw.Rect(0f, 0f, 320f, 240f, Color.Black * 0.8f);
-      Draw.OutlineTextCentered(TFGame.Font, "SPEED RUN", Position + new Vector2(0f, -92f), Color.White, 2f);
+      Draw.OutlineTextCentered(TFGame.Font, "SCROLL", Position + new Vector2(0f, -92f), Color.White, 2f);
       Draw.TextCentered(TFGame.Font, "UP/DOWN: CHAMP  LEFT/RIGHT: AJUSTER  CONFIRM: FERMER", Position + new Vector2(0f, -80f), Color.Gray);
 
       // Espacement 11px et depart remonte : jusqu'a 17 lignes visibles dans

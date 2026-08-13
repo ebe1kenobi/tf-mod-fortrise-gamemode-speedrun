@@ -45,7 +45,7 @@ namespace TFModFortRiseScroll
     // faisait reapparaitre son HUD (fleches) a droite de l'ecran.
     private static bool HUDRender_patch(Player __instance, bool wrapped)
     {
-      // false => on saute l'original (pas de rendu HUD wrappe en Speed Run).
+      // false => on saute l'original (pas de rendu HUD wrappe en Scroll).
       return !(wrapped && IsScroll(__instance));
     }
 

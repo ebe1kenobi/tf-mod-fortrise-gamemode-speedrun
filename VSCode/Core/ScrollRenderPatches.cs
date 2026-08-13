@@ -94,7 +94,7 @@ namespace TFModFortRiseScroll
       return IsScrollMode(sess != null ? sess.MatchSettings : null);
     }
 
-    // Source unique de verite pour "sommes-nous en mode Speed Run", partagee par
+    // Source unique de verite pour "sommes-nous en mode Scroll", partagee par
     // tous les hooks du mod.
     //
     // FortRise 4 : IsCustom && CurrentModeName == nameof(Scroll).
@@ -127,7 +127,7 @@ namespace TFModFortRiseScroll
     /// le papier. On mesure donc au lieu de deduire : ce que valent reellement les
     /// dimensions forcees, et la forme de la chaine qu'on donne a lire.
     ///
-    /// Quelques lignes par chargement de niveau, uniquement en mode Speed Run.
+    /// Quelques lignes par chargement de niveau, uniquement en mode Scroll.
     /// </summary>
     private static void Diag(string who, bool scroll, int width, int height, string data)
     {

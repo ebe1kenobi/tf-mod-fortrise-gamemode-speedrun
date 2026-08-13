@@ -6,7 +6,7 @@ using TowerFall;
 
 namespace TFModFortRiseScroll
 {
-  // Sur le bouton de selection de mode Versus, quand le mode Speed Run est
+  // Sur le bouton de selection de mode Versus, quand le mode Scroll est
   // selectionne : appui sur Y (bouton "fleches") -> ouvre la popup d'options.
   public class MyScrollModeButton : IHookable
   {

@@ -50,7 +50,17 @@ Scrolling:
 | Speed Run acceleration every (s) | how often that speed-up applies |
 | Speed Run shape | horizontal strip or square loop course |
 | Speed Run camera | auto-scrolling camera or one that follows the players |
-| Speed Run wide screen | wider visible area during rounds |
+
+### Playing wide
+
+There is no wide-screen option here any more. Widening the window is
+[WiderSet](https://gamebanana.com/mods/608884)'s job: turn its mode on and Speed Run
+is played wide like everything else.
+
+This mod used to resize the screen for its own rounds, which meant two mods owning
+the same width - each recomputing the image centering over a value the other had just
+changed, and the picture ending up off-centre. It reads the width now, it never sets
+it.
 
 Course:
 
@@ -73,6 +83,16 @@ Chests and rules:
 | SR treasure: ... | possible chest contents, one toggle per item |
 | Speed Run disable arrows | no shooting |
 | Speed Run disable head stomp | no killing by jumping on heads |
+
+## Game mode icon
+
+The mode has its own icon, at the size of the game's four (184x82) and in their
+style - a silhouette in three shades of one colour, no black: a four-room tower with the screen roaming inside it.
+
+It used to be borrowed from WARLORD's, a horned head with nothing to do with the mode. Two modes sharing
+one picture cannot be told apart in the list.
+
+The file is `ModFile/Content/Atlas/gamemode.png`.
 
 ## Build / deployment
 

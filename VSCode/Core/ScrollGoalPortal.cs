@@ -5,7 +5,7 @@ using TowerFall;
 
 namespace TFModFortRiseScroll
 {
-  // Portail d'arrivee ("trou noir") du mode Speed Run, copie visuelle du
+  // Portail d'arrivee ("trou noir") du mode Scroll, copie visuelle du
   // portail de fin de niveau du mode coop Dark World (NextLevelPortal) mais
   // autonome (aucune dependance a DarkWorldControl/DarkWorldState).
   //

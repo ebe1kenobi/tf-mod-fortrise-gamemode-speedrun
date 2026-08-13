@@ -22,19 +22,19 @@ namespace TFModFortRiseScroll
     private static ISubtextureEntry ScrollIcon { get; set; } = null!;
     public static IVersusGameModeEntry ScrollEntry { get; private set; } = null!;
 
-    public string Name => "Speed Run";
+    public string Name => "Scroll";
     public Color NameColor => Color.Orange;
     public ISubtextureEntry Icon => ScrollIcon;
     public bool IsTeamMode => false;
 
     public static void Register(IModContent content, IModRegistry registry)
     {
-      // Pas de texture embarquée : on réutilise l'icône vanilla (comme en FR4).
-      // Callback résolu paresseusement, une fois les atlas chargés.
+      // Icone propre au mode, aux dimensions des quatre du jeu (184x82) et dans leur
+      // style : une tour de quatre salles et l'ecran qui s'y promene. Elle remplace
+      // l'emprunt a "warlord", qui montrait une tete a cornes sans rapport - deux
+      // modes avec la meme image ne se distinguent pas dans la liste.
       ScrollIcon = registry.Subtextures.RegisterTexture(
-          "gameModes/Scroll",
-          () => TFGame.MenuAtlas["gameModes/warlord"],
-          SubtextureAtlasDestination.MenuAtlas
+          content.Root.GetRelativePath("Content/Atlas/gamemode.png")
       );
 
       ScrollEntry = registry.GameModes.RegisterVersusGameMode(new Scroll());

@@ -3,17 +3,12 @@ using System.Diagnostics;
 using System.Linq;
 using FortRise;
 using Microsoft.Extensions.Logging;
-using Teuria.WiderSet;
 
 namespace TFModFortRiseScroll
 {
   public class TFModFortRiseScrollModule : Mod
   {
     public static TFModFortRiseScrollModule Instance;
-
-    // Presence de WiderSet (ex-EightPlayerMod) : remplace l'ancien EigthPlayerImport
-    // via MonoMod.ModInterop. Non-null => le mod grand-ecran est installe.
-    public static IWiderSetModApi WiderSet;
 
     private static Type[] Registerables = [
         typeof(Scroll),
@@ -24,7 +19,6 @@ namespace TFModFortRiseScroll
         typeof(ScrollWrapPatches),
         typeof(MyScrollPlayer),
         typeof(MyScrollModeButton),
-        typeof(ScrollWideScreen),
     ];
 
     public static TFModFortRiseScrollSettings Settings => Instance.GetSettings<TFModFortRiseScrollSettings>()!;
@@ -74,12 +68,6 @@ namespace TFModFortRiseScroll
       {
         hookable.GetMethod(nameof(IHookable.Load))!.Invoke(null, [context.Harmony]);
       }
-
-      // FortRise 4 utilisait AfterLoad (RiseCore.ModsAfterLoad). FortRise 5 :
-      // OnModLoadStateFinished se declenche quand la phase de chargement de TOUS les
-      // mods est terminee -> seul moment fiable pour detecter WiderSet, qui peut se
-      // charger apres nous.
-      context.Events.OnModLoadStateFinished += OnLoadStateFinished;
     }
 
     public override ModuleSettings CreateSettings()
@@ -87,25 +75,16 @@ namespace TFModFortRiseScroll
       return new TFModFortRiseScrollSettings();
     }
 
-    private void OnLoadStateFinished(object sender, LoadState state)
-    {
-      if (state != LoadState.Ready)
-        return;
-
-      // Re-tente la liaison de l'API WiderSet maintenant que tous les mods sont charges.
-      if (WiderSet == null)
-        WiderSet = Context.Interop.GetApi<IWiderSetModApi>("Teuria.WiderSet");
-
-      // Les deux mods cohabitent desormais : plus rien n'est retire ici.
-      //
-      // Le conflit ne portait que sur la propriete de la largeur d'ecran. Il est
-      // regle dans ScrollWideScreen, qui se retire du redimensionnement tant que
-      // WiderSet tient l'ecran en large (WiderSetOwnsScreen) - et comme sa largeur
-      // vaut deja celle qu'on voulait, le round de Speed Run est large malgre tout.
-      //
-      // DisableScrollMode reste disponible plus bas si le besoin de retirer le mode
-      // se represente.
-    }
+    // NOTE : ce mod ne connait plus WiderSet du tout.
+    //
+    // Il redimensionnait l'ecran lui-meme pour ses manches, et devait donc s'entendre
+    // avec WiderSet, qui fait la meme chose de son cote : detection par interop, mise
+    // en retrait, restauration... Tout cela a disparu. Pour jouer Scroll en grand
+    // ecran, on active le mode de WiderSet - il elargit le jeu ENTIER, et bien plus
+    // completement que ce mod ne le faisait pour ses seuls rounds.
+    //
+    // DisableScrollMode reste disponible plus bas si le besoin de retirer le mode se
+    // represente.
 
     // Retire l'entree Scroll du registre FortRise 5.
     //

@@ -80,6 +80,12 @@ namespace TFModFortRiseScroll
       if (maxLevels > 0 && ordered.Count > maxLevels)
         ordered = ordered.GetRange(0, maxLevels);
 
+      // La taille d'un bloc se lit dans le premier level : 32x24 pour une tour
+      // ordinaire, 42x24 pour les levels larges du mod WiderSet. Tout ce qui suit -
+      // dimensions du niveau combine, offsets de collage, decoupe des jointures - en
+      // decoule, donc cette lecture doit venir en premier.
+      ScrollLevelBuilder.Detect(Calc.LoadXML(ordered[0])["level"]);
+
       bool square = TFModFortRiseScrollModule.Settings.ScrollShape == TFModFortRiseScrollSettings.ShapeSquare
                     && ordered.Count >= 4;
 
@@ -222,8 +228,8 @@ namespace TFModFortRiseScroll
         XmlElement src = Calc.LoadXML(p.Path)["level"];
         int colOff = p.Col * ScrollLevelBuilder.BLOCK_W;
         int rowOff = p.Row * ScrollLevelBuilder.BLOCK_H;
-        int dxPixels = p.Col * 320;
-        int dyPixels = p.Row * 240;
+        int dxPixels = p.Col * ScrollLevelBuilder.BLOCK_W * 10;
+        int dyPixels = p.Row * ScrollLevelBuilder.BLOCK_H * 10;
 
         bool[][] blockSolids = ScrollLevelBuilder.ParseBits(src["Solids"]?.InnerText);
         bool[][] blockBG = ScrollLevelBuilder.ParseBits(src["BG"]?.InnerText);
@@ -291,9 +297,11 @@ namespace TFModFortRiseScroll
       // communiquent (sinon les colonnes de bord solides forment un mur).
       CarveSeams(placements, solids, solidTiles, isLoop);
 
-      // Ferme le grand niveau par un cadre solide : plus de trous en haut/bas
-      // (donc plus de wrap vertical necessaire) et murs de bordure fermes.
-      ScrollLevelBuilder.FillSolidBorder(solids, BORDER_THICKNESS);
+      // Le cadre solide. Les cotes gauche et droit sont toujours fermes - le
+      // parcours a un debut et une fin - mais le haut et le bas ne le sont qu'en
+      // ANNEAU : en bande, ils restent ouverts et c'est le wrap vertical qui ramene
+      // par le haut ce qui tombe par le bas (voir ScrollWrapPatches).
+      ScrollLevelBuilder.FillSolidBorder(solids, BORDER_THICKNESS, true, isLoop);
 
       XmlElement solidsEl = doc.CreateElement("Solids");
       solidsEl.SetAttribute("exportMode", "Bitstring");

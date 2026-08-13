@@ -25,18 +25,18 @@ namespace TFModFortRiseScroll
     // modification. Chaque changement declenche donc une sauvegarde immediate.
     public override void Create(ISettingsCreate settings)
     {
-      settings.CreateNumber("Speed Run speed (tenths of px/frame)", ScrollSpeed, (x) => { ScrollSpeed = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 1, 30);
-      settings.CreateNumber("Speed Run acceleration (+tenths px/frame)", ScrollAccelAmount, (x) => { ScrollAccelAmount = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 0, 20);
-      settings.CreateNumber("Speed Run acceleration every (s)", ScrollAccelEvery, (x) => { ScrollAccelEvery = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 1, 60);
-      settings.CreateOptions("Speed Run shape", OptionName(ShapeNames, ScrollShape), ShapeNames, (x) => { ScrollShape = x.Item2; TFModFortRiseScrollModule.SaveSettingsNow(); });
-      settings.CreateOnOff("Speed Run goal portal", ScrollGoalPortal, (x) => { ScrollGoalPortal = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
-      settings.CreateNumber("Speed Run laps before goal (square)", ScrollLaps, (x) => { ScrollLaps = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 1, 10);
-      settings.CreateNumber("Speed Run number of levels", ScrollMaxLevels, (x) => { ScrollMaxLevels = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 2, 30);
-      settings.CreateOptions("Speed Run camera", OptionName(CameraNames, ScrollCamera), CameraNames, (x) => { ScrollCamera = x.Item2; TFModFortRiseScrollModule.SaveSettingsNow(); });
-      settings.CreateOnOff("Speed Run leave players behind", ScrollLeaveBehind, (x) => { ScrollLeaveBehind = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
-      settings.CreateNumber("Speed Run offscreen death delay (s)", ScrollOffscreenDeathDelay, (x) => { ScrollOffscreenDeathDelay = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 1, 15);
-      settings.CreateNumber("Speed Run treasure count", ScrollTreasureCount, (x) => { ScrollTreasureCount = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 0, 20);
-      settings.CreateNumber("Speed Run treasure respawn (s)", ScrollTreasureRespawn, (x) => { ScrollTreasureRespawn = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 0, 60);
+      settings.CreateNumber("speed (tenths of px/frame)", ScrollSpeed, (x) => { ScrollSpeed = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 1, 30);
+      settings.CreateNumber("acceleration (+tenths px/frame)", ScrollAccelAmount, (x) => { ScrollAccelAmount = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 0, 20);
+      settings.CreateNumber("acceleration every (s)", ScrollAccelEvery, (x) => { ScrollAccelEvery = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 1, 60);
+      settings.CreateOptions("shape", OptionName(ShapeNames, ScrollShape), ShapeNames, (x) => { ScrollShape = x.Item2; TFModFortRiseScrollModule.SaveSettingsNow(); });
+      settings.CreateOnOff("goal portal", ScrollGoalPortal, (x) => { ScrollGoalPortal = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
+      settings.CreateNumber("laps before goal (square)", ScrollLaps, (x) => { ScrollLaps = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 1, 10);
+      settings.CreateNumber("number of levels", ScrollMaxLevels, (x) => { ScrollMaxLevels = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 2, 30);
+      settings.CreateOptions("camera", OptionName(CameraNames, ScrollCamera), CameraNames, (x) => { ScrollCamera = x.Item2; TFModFortRiseScrollModule.SaveSettingsNow(); });
+      settings.CreateOnOff("leave players behind", ScrollLeaveBehind, (x) => { ScrollLeaveBehind = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
+      settings.CreateNumber("offscreen death delay (s)", ScrollOffscreenDeathDelay, (x) => { ScrollOffscreenDeathDelay = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 1, 15);
+      settings.CreateNumber("treasure count", ScrollTreasureCount, (x) => { ScrollTreasureCount = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 0, 20);
+      settings.CreateNumber("treasure respawn (s)", ScrollTreasureRespawn, (x) => { ScrollTreasureRespawn = x; TFModFortRiseScrollModule.SaveSettingsNow(); }, 0, 60);
 
       settings.CreateOnOff("SR treasure: arrows", ScrollPickupArrows, (x) => { ScrollPickupArrows = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
       settings.CreateOnOff("SR treasure: bomb arrows", ScrollPickupBombArrows, (x) => { ScrollPickupBombArrows = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
@@ -59,14 +59,13 @@ namespace TFModFortRiseScroll
       settings.CreateOnOff("SR treasure: chaos orb", ScrollPickupChaosOrb, (x) => { ScrollPickupChaosOrb = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
       settings.CreateOnOff("SR treasure: bomb", ScrollPickupBomb, (x) => { ScrollPickupBomb = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
 
-      settings.CreateOnOff("Speed Run same spawn (race)", ScrollSameSpawn, (x) => { ScrollSameSpawn = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
-      settings.CreateOnOff("Speed Run disable arrows", ScrollNoArrows, (x) => { ScrollNoArrows = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
-      settings.CreateOnOff("Speed Run disable head stomp", ScrollNoStomp, (x) => { ScrollNoStomp = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
-      settings.CreateOnOff("Speed Run intro zoom", ScrollIntroZoom, (x) => { ScrollIntroZoom = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
-      settings.CreateOnOff("Speed Run wide screen", ScrollWideScreen, (x) => { ScrollWideScreen = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
+      settings.CreateOnOff("same spawn (race)", ScrollSameSpawn, (x) => { ScrollSameSpawn = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
+      settings.CreateOnOff("disable arrows", ScrollNoArrows, (x) => { ScrollNoArrows = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
+      settings.CreateOnOff("disable head stomp", ScrollNoStomp, (x) => { ScrollNoStomp = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
+      settings.CreateOnOff("intro zoom", ScrollIntroZoom, (x) => { ScrollIntroZoom = x; TFModFortRiseScrollModule.SaveSettingsNow(); });
     }
 
-    // Vitesse de defilement du mode Speed Run, en dixiemes de pixel par frame.
+    // Vitesse de defilement du mode Scroll, en dixiemes de pixel par frame.
     public int ScrollSpeed { get; set; } = 10;
 
     // Acceleration progressive du scroll (dixiemes de px/frame). 0 = desactive.
@@ -83,14 +82,14 @@ namespace TFModFortRiseScroll
     public int ScrollLaps { get; set; } = 3;
 
     // Nombre max de levels du monde a coller bout a bout.
-    public int ScrollMaxLevels { get; set; } = 10;
+    public int ScrollMaxLevels { get; set; } = 4;
 
     // Mode camera. NB : FollowPlayers=2 est conserve pour compatibilite meme si
     // l'index d'option stocke ne l'atteint pas (comportement identique a FortRise 4).
     public const int CameraAutoScroll = 0;
     //public const int CameraFollowLeader = 1;
     public const int CameraFollowPlayers = 2;
-    public int ScrollCamera { get; set; } = CameraAutoScroll;
+    public int ScrollCamera { get; set; } = CameraFollowPlayers;
 
     // Option 2 : les retardataires sortent de l'ecran et meurent apres N secondes.
     public bool ScrollLeaveBehind { get; set; } = false;
@@ -162,7 +161,10 @@ namespace TFModFortRiseScroll
     // Intro : vue d'ensemble dezoomee du niveau puis zoom vers le depart.
     public bool ScrollIntroZoom { get; set; } = true;
 
-    // Fenetre visible elargie (420x240) pendant les rounds Speed Run.
-    public bool ScrollWideScreen { get; set; } = true;
+    // NOTE : l'option "wide screen" a ete retiree. Elargir la fenetre est le metier
+    // du mod WiderSet, qui le fait pour tout le jeu et bien plus complement que ce
+    // mod ne le faisait pour ses seules manches : pour jouer Scroll en large, on
+    // active le mode de WiderSet. Deux mods qui se disputaient la largeur de l'ecran
+    // se marchaient dessus, et le centrage de l'image en faisait les frais.
   }
 }
